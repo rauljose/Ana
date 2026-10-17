@@ -1,0 +1,84 @@
+.dual-listbox {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    font-family: system-ui, -apple-system, sans-serif;
+    width: 100%;
+    max-width: 800px;
+}
+
+.dl-filter-container input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    font-size: 0.95rem;
+    box-sizing: border-box;
+}
+
+.dl-columns {
+    display: flex;
+    gap: 20px;
+    height: 300px; /* Fixed height for scrollable lists */
+}
+
+.dl-column {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    background: #fff;
+    overflow: hidden;
+}
+
+.dl-header {
+    background: #f8f9fa;
+    padding: 8px 12px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    border-bottom: 1px solid #dee2e6;
+    color: #495057;
+    user-select: none;
+}
+
+.dl-list {
+    flex: 1;
+    margin: 0;
+    padding: 5px;
+    list-style: none;
+    overflow-y: auto;
+    background: #fcfcfc;
+}
+
+.dl-item {
+    padding: 8px 12px;
+    margin-bottom: 4px;
+    background: #fff;
+    border: 1px solid #e9ecef;
+    border-radius: 3px;
+    cursor: grab;
+    font-size: 0.9rem;
+    color: #212529;
+    user-select: none;
+    transition: background-color 0.1s, border-color 0.1s;
+}
+
+.dl-item:hover {
+    background: #e2eefd;
+    border-color: #b6d4fe;
+}
+
+.dl-item:active {
+    cursor: grabbing;
+}
+
+.dl-item.hidden {
+    display: none !important;
+}
+
+/* Sortable.js drag placeholder styling */
+.dl-ghost {
+    opacity: 0.4;
+    background: #e9ecef;
+}
