@@ -268,7 +268,7 @@ $preSelectedClasses = array_values(array_filter(array_map('trim', explode(',',$_
         document.getElementById('chkRadar').addEventListener('change', toggleLayout);
 
         // Fetch the baseline data to populate the Widgets and the Scatter plot
-        fetch('classMermaid.php?action=6')
+        fetch('api/classMermaid.php?action=6')
             .then(res => res.json())
             .then(data => {
                 rawScatterData = data;
@@ -417,7 +417,7 @@ $preSelectedClasses = array_values(array_filter(array_map('trim', explode(',',$_
         }
 
         const qs = targets.map(encodeURIComponent).join(',');
-        fetch(`classMermaid.php?action=7&classes=${qs}`)
+        fetch(`api/classMermaid.php?action=7&classes=${qs}`)
             .then(res => res.json())
             .then(data => {
                 if (data.error) {

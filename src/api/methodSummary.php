@@ -1,14 +1,6 @@
 <?php declare(strict_types=1);
 
-mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
-
-try {
-    $mysqli = new mysqli('127.0.0.1', 'root', '', 'static_analysis');
-    $mysqli->set_charset('utf8mb4');
-    $mysqli->query("SET collation_connection = 'utf8mb4_0900_ai_ci'");
-} catch (mysqli_sql_exception $e) {
-    die(json_encode(['error' => 'Database connection failed']));
-}
+require_once("../config/config.php");
 
 header('Content-Type: application/json; charset=utf-8');
 

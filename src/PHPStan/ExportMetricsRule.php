@@ -36,13 +36,8 @@ class ExportMetricsRule implements Rule
         $definitions = $node->get(MethodDefinitionCollector::class);
         $calls = $node->get(MethodCallCollector::class);
 
-        try {
-            $mysqli = new mysqli('127.0.0.1', 'root', '986532', 'ana');
-            $mysqli->set_charset('utf8mb4');
-            $mysqli->query("SET collation_connection = 'utf8mb4_0900_ai_ci'");
-        } catch (mysqli_sql_exception $e) {
-            return [RuleErrorBuilder::message("Database connection failed: " . $e->getMessage())->build()];
-        }
+        $mysqli = require_once("../config/config.php");
+
         try {
         $mysqli->begin_transaction();
 
