@@ -53,7 +53,7 @@ const anaCol = {
     detail: (title, field, tip, type, nameField, extra = {}) => anaCol.text(title, field, tip, {
         formatter: (cell) => {
             const row = cell.getRow().getData();
-            if (row.kind === 'Native Function') return cell.getValue();
+            if (row.kind === 'Native Function' || !cell.getValue()) return cell.getValue();
             const link = document.createElement('a');
             link.href = `detail.php?type=${type}&name=${encodeURIComponent(row[nameField])}`;
             link.textContent = cell.getValue();

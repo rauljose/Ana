@@ -8,6 +8,7 @@ $anaPages = [
     'class_metrics.php' => ['Class Metrics', 'Every recovered class metric in one sortable, filterable table'],
     'method_metrics.php' => ['Method Metrics', 'Every recovered method and function metric in one sortable, filterable table'],
     'namespace_metrics.php' => ['Namespace Metrics', 'Metrics rolled up per namespace: size, complexity, coupling, cycles'],
+    'global_report.php' => ['Globals Report', 'Superglobals, global variables, constants, properties and static properties, and the methods that use them'],
     'class_graph.php' => ['Class Graphs', 'Zone of Pain scatter plot and class health radar'],
     'method_graph.php' => ['Method Graphs', 'Method hotspots scatter plot and method health radar'],
     'call_graph.php' => ['Call Graph', 'Calls between namespaces, classes or methods, with incoming and outgoing calls of a focus'],
