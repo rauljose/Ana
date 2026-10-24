@@ -107,3 +107,10 @@ body.ana-index-page {
 .ana-card h2 { margin: 0 0 6px; font-size: 1.05rem; color: var(--accent); }
 .ana-card p { margin: 0; font-size: 0.9rem; color: #495057; }
 .ana-index .ana-error { color: #dc3545; }
+
+/* --- Presets --- */
+.ana-presets { display: flex; flex-wrap: wrap; gap: 8px; padding: 8px 20px; background: var(--panel-bg); border-bottom: 1px solid var(--border-color); flex-shrink: 0; }
+.ana-presets button { padding: 5px 12px; border: 1px solid var(--accent); border-radius: 14px; background: var(--panel-bg); color: var(--accent); cursor: pointer; font-size: 0.85rem; }
+.ana-presets button:hover { background: var(--bg-color); }
+.ana-presets button.active { background: var(--accent); color: #fff; }
+.ana-preset-note { padding: 4px 20px 0; font-size: 0.85rem; color: #495057; flex-shrink: 0; min-height: 1.2em; }

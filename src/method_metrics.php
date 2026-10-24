@@ -21,6 +21,8 @@
     </details>
     <span class="ana-status" id="anaStatus">Loading...</span>
 </div>
+<div class="ana-presets" id="anaPresets"></div>
+<div class="ana-preset-note" id="anaPresetNote"></div>
 <div class="ana-filter-hint">Click a header to sort (shift+click for multi-sort). Text filters match any part, case insensitive. Number filters accept 5, &gt;5, &gt;=5, &lt;5, &lt;=5, !=5 or a range 2-8. Filter Kind to separate methods, functions and native (built-in) functions. Hover a header for the metric definition.</div>
 
 <div class="ana-table-wrap"><div id="methodTable"></div></div>
@@ -28,6 +30,12 @@
 <script>
     const table = new Tabulator('#methodTable', {
         ajaxURL: 'api/methodSummary.php',
+        // Derived columns, computed here from the API fields
+        ajaxResponse: (url, params, response) => response.map(row => ({
+            ...row,
+            hotspot_score: row.cyclo_complexity * row.calls_in_total,
+            is_unused_candidate: row.kind !== 'Native Function' && parseInt(row.calls_in_total) === 0,
+        })),
         layout: 'fitDataFill',
         movableColumns: true,
         initialSort: [{ column: 'cyclo_complexity', dir: 'desc' }],
@@ -49,6 +57,7 @@
                 title: 'Complexity', columns: [
                     anaCol.num('Cyclomatic', 'cyclo_complexity', 'Number of independent execution paths'),
                     anaCol.num('Cognitive', 'cognitive_complexity', 'How hard the method is to understand; nesting weighs more'),
+                    anaCol.num('Hotspot score', 'hotspot_score', 'Cyclomatic x Calls in. Complex methods that many methods call are the riskiest to change'),
                     anaCol.flag('Pure', 'is_pure', 'Has no side effects'),
                     anaCol.flag('Ends script', 'is_ends', 'Ends the script (exit / die)'),
                 ]
@@ -78,12 +87,21 @@
                     anaCol.num('Calls in', 'calls_in_total', 'Calls made to this method (fan-in)'),
                     anaCol.text('Calls out list', 'calls_out_list', 'What this method calls'),
                     anaCol.text('Calls in list', 'calls_in_list', 'Who calls this method'),
+                    anaCol.flag('Unused candidate', 'is_unused_candidate', 'Nothing calls it. Entry points, callbacks, interface implementations and dynamic calls also look unused'),
                 ]
             },
         ],
     });
 
     anaInitToolbar(table, 'method_metrics.csv');
+    anaInitPresets(table, [
+        { label: 'Hotspots', tip: 'Complex methods many methods call, by cyclomatic x calls in', filter: row => row.hotspot_score > 0, sort: [{ column: 'hotspot_score', dir: 'desc' }] },
+        { label: 'Unused candidates', tip: 'Methods and functions nothing calls. Private ones are almost certainly dead; check entry points, callbacks and interface methods', filter: row => row.is_unused_candidate, sort: [{ column: 'cyclo_complexity', dir: 'desc' }] },
+        { label: 'Hard to read', tip: 'Cognitive complexity of 15 or more', filter: row => row.kind !== 'Native Function' && parseInt(row.cognitive_complexity) >= 15, sort: [{ column: 'cognitive_complexity', dir: 'desc' }] },
+        { label: 'Long signatures', tip: 'Five or more parameters, or any by reference', filter: row => parseInt(row.num_parameters) >= 5 || parseInt(row.num_reference_parameters) > 0, sort: [{ column: 'num_parameters', dir: 'desc' }] },
+        { label: 'Global state & side effects', tip: 'Methods touching superglobals, the global keyword or constants, or ending the script', filter: row => parseInt(row.uses_globals) > 0 || parseInt(row.is_ends) === 1, sort: [{ column: 'uses_globals', dir: 'desc' }] },
+        { label: 'Writes state', tip: 'Methods that write properties', filter: row => parseInt(row.props_written) > 0, sort: [{ column: 'props_written', dir: 'desc' }] },
+    ]);
 </script>
 </body>
 </html>

@@ -83,3 +83,31 @@ function anaInitToolbar(table, csvName) {
     });
     document.getElementById('anaCsv').addEventListener('click', () => table.download('csv', csvName));
 }
+
+// Preset buttons: each one clears the filters, applies its row filter and sorts the table.
+// preset = { label, tip, filter: (row) => bool (optional), sort: [{ column, dir }] }
+function anaInitPresets(table, presets) {
+    const bar = document.getElementById('anaPresets');
+    const note = document.getElementById('anaPresetNote');
+
+    const buttons = presets.map(preset => {
+        const button = document.createElement('button');
+        button.textContent = preset.label;
+        button.title = preset.tip;
+        button.addEventListener('click', () => {
+            table.clearHeaderFilter();
+            table.clearFilter(true);
+            if (preset.filter) table.setFilter(preset.filter);
+            table.setSort(preset.sort);
+            buttons.forEach(other => other.classList.toggle('active', other === button));
+            note.textContent = preset.tip;
+        });
+        bar.appendChild(button);
+        return button;
+    });
+
+    document.getElementById('anaClear').addEventListener('click', () => {
+        buttons.forEach(button => button.classList.remove('active'));
+        note.textContent = '';
+    });
+}

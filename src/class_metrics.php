@@ -21,6 +21,8 @@
     </details>
     <span class="ana-status" id="anaStatus">Loading...</span>
 </div>
+<div class="ana-presets" id="anaPresets"></div>
+<div class="ana-preset-note" id="anaPresetNote"></div>
 <div class="ana-filter-hint">Click a header to sort (shift+click for multi-sort). Text filters match any part, case insensitive. Number filters accept 5, &gt;5, &gt;=5, &lt;5, &lt;=5, !=5 or a range 2-8. Hover a header for the metric definition.</div>
 
 <div class="ana-table-wrap"><div id="classTable"></div></div>
@@ -28,6 +30,17 @@
 <script>
     const table = new Tabulator('#classTable', {
         ajaxURL: 'api/classSummary.php',
+        // Derived columns, computed here from the API fields
+        ajaxResponse: (url, params, response) => response.map(row => {
+            const abstractness = ['Interface', 'Abstract Class'].includes(row.type) ? 1 : 0;
+            return {
+                ...row,
+                hotspot_score: row.total_cyclo * row.afferent_ca,
+                abstractness: abstractness,
+                main_seq_distance: Math.round(Math.abs(abstractness + parseFloat(row.instability) - 1) * 100) / 100,
+                is_unused_candidate: row.afferent_ca === 0 && row.children_count === 0 && ['Class', 'Final Class', 'Abstract Class'].includes(row.type),
+            };
+        }),
         layout: 'fitDataFill',
         movableColumns: true,
         initialSort: [{ column: 'total_cyclo', dir: 'desc' }],
@@ -69,6 +82,7 @@
                     anaCol.num('Cognitive avg', 'avg_cog', 'Average cognitive complexity per method'),
                     anaCol.text('Cognitive max method', 'max_cog_method', 'Method with the highest cognitive complexity'),
                     anaCol.num('Cognitive max', 'max_cog_val', 'Cognitive complexity of that method'),
+                    anaCol.num('Hotspot score', 'hotspot_score', 'Cyclomatic total x Ca. Complex classes that many classes depend on are the riskiest to change'),
                 ]
             },
             {
@@ -87,6 +101,8 @@
                     anaCol.num('Instability', 'instability', 'Ce / (Ca + Ce). 0 = stable, 1 = unstable'),
                     anaCol.num('MPC', 'mpc', 'Message passing coupling: calls to methods of other classes'),
                     anaCol.num('DAC', 'dac', 'Data abstraction coupling: properties typed with a class'),
+                    anaCol.num('Abstractness', 'abstractness', '1 for interfaces and abstract classes, 0 for concrete classes'),
+                    anaCol.num('Main seq. distance', 'main_seq_distance', '|Abstractness + Instability - 1|. Near 0 is balanced; near 1 is rigid (stable and concrete) or useless (unstable and abstract)'),
                     anaCol.text('Classes used', 'classes_used', 'Classes this class uses'),
                     anaCol.text('Classes using this', 'classes_using_this', 'Classes that use this class'),
                 ]
@@ -107,12 +123,21 @@
                     anaCol.flag('God class', 'is_god_class', 'LCOM >= 0.8, cyclomatic total > 40 and Ce > 10'),
                     anaCol.flag('Data class', 'is_data_class', 'More than 2 mutable properties, at most 3 methods, avg cyclomatic <= 1.5'),
                     anaCol.flag('Stateless service', 'is_stateless_service', 'No mutable properties and more than 80% pure methods'),
+                    anaCol.flag('Unused candidate', 'is_unused_candidate', 'Concrete class nothing calls and nothing extends. Classes used only through type hints, instanceof or dynamic names also look unused'),
                 ]
             },
         ],
     });
 
     anaInitToolbar(table, 'class_metrics.csv');
+    anaInitPresets(table, [
+        { label: 'Hotspots', tip: 'Complex classes many classes depend on, by cyclomatic total x Ca', filter: row => row.hotspot_score > 0, sort: [{ column: 'hotspot_score', dir: 'desc' }] },
+        { label: 'Smells', tip: 'God classes and data classes', filter: row => row.is_god_class || row.is_data_class, sort: [{ column: 'total_cyclo', dir: 'desc' }] },
+        { label: 'Unused candidates', tip: 'Concrete classes nothing calls or extends. Verify before deleting: type hints and dynamic use are not counted', filter: row => row.is_unused_candidate, sort: [{ column: 'total_methods', dir: 'desc' }] },
+        { label: 'Main sequence', tip: 'Classes furthest from the balance between abstractness and instability', filter: row => row.main_seq_distance >= 0.7, sort: [{ column: 'main_seq_distance', dir: 'desc' }] },
+        { label: 'Inheritance', tip: 'Classes that other classes extend, by number of children', filter: row => row.children_count > 0, sort: [{ column: 'children_count', dir: 'desc' }] },
+        { label: 'Global state', tip: 'Classes using superglobals or the global keyword', filter: row => row.uses_superglobals || row.uses_global_keyword, sort: [{ column: 'total_cyclo', dir: 'desc' }] },
+    ]);
 </script>
 </body>
 </html>

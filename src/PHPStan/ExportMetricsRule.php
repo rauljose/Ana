@@ -40,7 +40,7 @@ class ExportMetricsRule implements Rule
         $definitions = $node->get(MethodDefinitionCollector::class);
         $calls = $node->get(MethodCallCollector::class);
 
-        $mysqli = require_once("../config/config.php");
+        $mysqli = require __DIR__ . '/../config/config.php';
 
         try {
         $mysqli->begin_transaction();
