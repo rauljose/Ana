@@ -16,6 +16,7 @@
     <h1>Namespace Metrics</h1>
     <button id="anaClear">Clear filters</button>
     <button id="anaCsv">Export CSV</button>
+    <button id="anaLayout">Layout...</button>
     <details class="ana-columns">
         <summary>Columns</summary>
         <div class="ana-columns-list" id="anaColumnsList"></div>
@@ -45,6 +46,7 @@
             return response.map(row => ({ ...row, in_cycle: inCycle.has(row.namespace) }));
         },
         columns: [
+            anaCol.rowNumber(),
             anaCol.text('Namespace', 'namespace', 'Namespace. Classes are rolled up by their exact namespace, sub namespaces are separate rows', { frozen: true }),
             {
                 title: 'Types', columns: [
@@ -86,6 +88,7 @@
     });
 
     anaInitToolbar(table, 'namespace_metrics.csv');
+    anaInitLayout(table, 'namespace_metrics', [{ column: 'total_cyclo', dir: 'desc' }]);
     anaInitPresets(table, [
         { label: 'Hotspots', tip: 'Complex namespaces many namespaces depend on, by cyclomatic total x Ca', filter: row => row.hotspot_score > 0, sort: [{ column: 'hotspot_score', dir: 'desc' }] },
         { label: 'In cycles', tip: 'Namespaces in a dependency cycle. Open the Call Graph at namespace level to see them', filter: row => row.in_cycle, sort: [{ column: 'efferent_ce', dir: 'desc' }] },

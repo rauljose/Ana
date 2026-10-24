@@ -334,6 +334,11 @@ foreach ($report as $key => &$data) {
 }
 unset($data);
 
+// Optional single class, used by detail.php
+if (isset($_GET['class'])) {
+    $report = array_filter($report, fn($row) => $row['class_name'] === $_GET['class']);
+}
+
 // 9. Output as JSON
 header('Content-Type: application/json');
 echo json_encode(array_values($report), JSON_PRETTY_PRINT);

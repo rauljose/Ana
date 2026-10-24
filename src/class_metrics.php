@@ -15,10 +15,12 @@
     <h1>Class Metrics</h1>
     <button id="anaClear">Clear filters</button>
     <button id="anaCsv">Export CSV</button>
+    <button id="anaLayout">Layout...</button>
     <details class="ana-columns">
         <summary>Columns</summary>
         <div class="ana-columns-list" id="anaColumnsList"></div>
     </details>
+    <label><input type="checkbox" id="chkGroup"> Group by namespace</label>
     <span class="ana-status" id="anaStatus">Loading...</span>
 </div>
 <div class="ana-presets" id="anaPresets"></div>
@@ -44,8 +46,15 @@
         layout: 'fitDataFill',
         movableColumns: true,
         initialSort: [{ column: 'total_cyclo', dir: 'desc' }],
+        groupStartOpen: true,
+        groupToggleElement: 'header',
+        groupHeader: (value, count, data) => {
+            const sum = (field) => data.reduce((total, row) => total + row[field], 0);
+            return `${value} <span style="font-weight:normal;color:#495057">&mdash; ${count} types, ${sum('total_methods')} methods, cyclomatic total ${sum('total_cyclo')}</span>`;
+        },
         columns: [
-            anaCol.text('Class', 'short_name', 'Class name without namespace', { frozen: true }),
+            anaCol.rowNumber(),
+            anaCol.detail('Class', 'short_name', 'Class name without namespace. Click for the class detail page', 'class', 'class_name', { frozen: true }),
             {
                 title: 'Identity', columns: [
                     anaCol.text('Namespace', 'namespace', 'Namespace of the class'),
@@ -130,6 +139,10 @@
     });
 
     anaInitToolbar(table, 'class_metrics.csv');
+    anaInitLayout(table, 'class_metrics', [{ column: 'total_cyclo', dir: 'desc' }]);
+    document.getElementById('chkGroup').addEventListener('change', (event) => {
+        table.setGroupBy(event.target.checked ? 'namespace' : false);
+    });
     anaInitPresets(table, [
         { label: 'Hotspots', tip: 'Complex classes many classes depend on, by cyclomatic total x Ca', filter: row => row.hotspot_score > 0, sort: [{ column: 'hotspot_score', dir: 'desc' }] },
         { label: 'Smells', tip: 'God classes and data classes', filter: row => row.is_god_class || row.is_data_class, sort: [{ column: 'total_cyclo', dir: 'desc' }] },

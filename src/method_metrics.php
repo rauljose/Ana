@@ -15,6 +15,7 @@
     <h1>Method &amp; Function Metrics</h1>
     <button id="anaClear">Clear filters</button>
     <button id="anaCsv">Export CSV</button>
+    <button id="anaLayout">Layout...</button>
     <details class="ana-columns">
         <summary>Columns</summary>
         <div class="ana-columns-list" id="anaColumnsList"></div>
@@ -40,7 +41,8 @@
         movableColumns: true,
         initialSort: [{ column: 'cyclo_complexity', dir: 'desc' }],
         columns: [
-            anaCol.text('Method', 'method_short_name', 'Method or function name without class or namespace', { frozen: true }),
+            anaCol.rowNumber(),
+            anaCol.detail('Method', 'method_short_name', 'Method or function name without class or namespace. Click for the method detail page', 'method', 'fqn', { frozen: true }),
             {
                 title: 'Identity', columns: [
                     anaCol.text('Namespace', 'namespace', 'Namespace of the class, or of the function'),
@@ -94,6 +96,7 @@
     });
 
     anaInitToolbar(table, 'method_metrics.csv');
+    anaInitLayout(table, 'method_metrics', [{ column: 'cyclo_complexity', dir: 'desc' }]);
     anaInitPresets(table, [
         { label: 'Hotspots', tip: 'Complex methods many methods call, by cyclomatic x calls in', filter: row => row.hotspot_score > 0, sort: [{ column: 'hotspot_score', dir: 'desc' }] },
         { label: 'Unused candidates', tip: 'Methods and functions nothing calls. Private ones are almost certainly dead; check entry points, callbacks and interface methods', filter: row => row.is_unused_candidate, sort: [{ column: 'cyclo_complexity', dir: 'desc' }] },

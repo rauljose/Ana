@@ -114,3 +114,35 @@ body.ana-index-page {
 .ana-presets button:hover { background: var(--bg-color); }
 .ana-presets button.active { background: var(--accent); color: #fff; }
 .ana-preset-note { padding: 4px 20px 0; font-size: 0.85rem; color: #495057; flex-shrink: 0; min-height: 1.2em; }
+
+/* --- Layout dialog --- */
+.ana-dialog { width: min(760px, 92vw); max-height: 88vh; padding: 18px 22px; border: 1px solid var(--border-color); border-radius: 8px; font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+.ana-dialog::backdrop { background: rgba(0, 0, 0, 0.35); }
+.ana-dialog h2 { margin: 0 0 10px; font-size: 1.2rem; }
+.ana-dialog fieldset { margin: 0 0 12px; border: 1px solid var(--border-color); border-radius: 4px; }
+.ana-dialog legend { font-weight: 600; font-size: 0.9rem; }
+.ana-dialog-columns { display: grid; grid-template-columns: repeat(2, 1fr); gap: 2px 16px; max-height: 38vh; overflow-y: auto; margin-top: 8px; }
+.ana-dialog-columns label { font-size: 0.85rem; cursor: pointer; }
+.ana-dialog-sorts div { display: flex; gap: 8px; margin: 6px 0; }
+.ana-dialog-sorts select { padding: 4px 6px; }
+.ana-dialog-sorts select:first-child { flex: 1; }
+.ana-dialog-row { display: flex; gap: 8px; align-items: center; }
+.ana-dialog-row .ana-spacer { flex: 1; }
+.ana-dialog button { padding: 6px 14px; border: 1px solid var(--border-color); border-radius: 4px; background: var(--panel-bg); cursor: pointer; font-size: 0.9rem; }
+.ana-dialog button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.ana-dialog-note { margin: 4px 0 12px; font-size: 0.8rem; color: #6c757d; }
+
+/* --- Detail page --- */
+.ana-detail { max-width: 1300px; margin: 0 auto; padding: 20px; }
+.ana-detail h1 { margin: 0 0 4px; font-size: 1.4rem; word-break: break-all; }
+.ana-detail h2 { margin: 24px 0 8px; font-size: 1.05rem; }
+.ana-detail .ana-subtitle { margin: 0 0 16px; color: #6c757d; font-size: 0.9rem; }
+.ana-detail .ana-links a { margin-right: 14px; }
+.ana-detail table { border-collapse: collapse; width: 100%; background: var(--panel-bg); border: 1px solid var(--border-color); font-size: 0.9rem; }
+.ana-detail th, .ana-detail td { text-align: left; padding: 5px 10px; border-bottom: 1px solid var(--border-color); }
+.ana-detail th { background: var(--bg-color); }
+.ana-detail td.num, .ana-detail th.num { text-align: right; }
+.ana-detail pre { background: var(--panel-bg); border: 1px solid var(--border-color); padding: 10px; overflow-x: auto; font-size: 0.85rem; }
+.ana-detail .ana-empty { color: #6c757d; font-size: 0.9rem; }
+.ana-badge { display: inline-block; padding: 2px 8px; margin-right: 6px; border-radius: 10px; background: #dc3545; color: #fff; font-size: 0.8rem; }
+.ana-badge.info { background: #0d6efd; }
