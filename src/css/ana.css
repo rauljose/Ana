@@ -38,9 +38,6 @@ body.ana-table-page {
     font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     background-color: var(--bg-color);
     color: var(--text-main);
-    display: flex;
-    flex-direction: column;
-    height: 100vh;
 }
 .ana-toolbar {
     display: flex;
@@ -79,7 +76,7 @@ body.ana-table-page {
 }
 .ana-columns-list label { display: block; padding: 2px 0; font-size: 0.9rem; cursor: pointer; }
 .ana-filter-hint { padding: 6px 20px; font-size: 0.8rem; color: #6c757d; flex-shrink: 0; }
-.ana-table-wrap { flex: 1; min-height: 0; padding: 0 20px 20px; }
+.ana-table-wrap { height: calc(100vh - 250px); min-height: 420px; padding: 0 20px 20px; }
 .ana-table-wrap .tabulator { height: 100%; }
 
 /* --- Index page --- */
@@ -146,3 +143,18 @@ body.ana-index-page {
 .ana-detail .ana-empty { color: #6c757d; font-size: 0.9rem; }
 .ana-badge { display: inline-block; padding: 2px 8px; margin-right: 6px; border-radius: 10px; background: #dc3545; color: #fff; font-size: 0.8rem; }
 .ana-badge.info { background: #0d6efd; }
+
+/* --- Find column, preset None, column guide --- */
+.ana-toolbar input[type=search] { padding: 6px 10px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 0.9rem; width: 170px; }
+.tabulator .tabulator-col.ana-col-found, .tabulator .tabulator-col.ana-col-found .tabulator-col-content { background: #fff3a3; }
+.ana-presets button.ana-preset-none { border-color: #6c757d; color: #6c757d; }
+.ana-dialog label.ana-col-found { background: #fff3a3; }
+.ana-dialog-find { flex: 1; padding: 5px 8px; border: 1px solid var(--border-color); border-radius: 4px; }
+.ana-dialog .ana-name { padding: 5px 8px; border: 1px solid var(--border-color); border-radius: 4px; width: 170px; }
+.ana-dialog-default { display: block; margin-top: 4px; font-size: 0.9rem; }
+.ana-guide { max-width: 1300px; margin: 0 auto; padding: 0 20px 40px; }
+.ana-guide h2 { font-size: 1.1rem; margin: 10px 0; }
+.ana-guide h3 { font-size: 1rem; margin: 18px 0 4px; padding-bottom: 4px; border-bottom: 2px solid var(--accent); }
+.ana-guide dl { display: grid; grid-template-columns: minmax(150px, 220px) 1fr; gap: 4px 16px; margin: 6px 0; }
+.ana-guide dt { font-weight: 600; font-size: 0.9rem; }
+.ana-guide dd { margin: 0; font-size: 0.9rem; color: #495057; }

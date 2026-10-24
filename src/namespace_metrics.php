@@ -17,6 +17,7 @@
     <button id="anaClear">Clear filters</button>
     <button id="anaCsv">Export CSV</button>
     <button id="anaLayout">Layout...</button>
+    <input type="search" id="anaFind" placeholder="Find a column...">
     <details class="ana-columns">
         <summary>Columns</summary>
         <div class="ana-columns-list" id="anaColumnsList"></div>
@@ -28,6 +29,11 @@
 <div class="ana-filter-hint">Click a header to sort (shift+click for multi-sort). Text filters match any part, case insensitive. Number filters accept 5, &gt;5, &gt;=5, &lt;5, &lt;=5, !=5 or a range 2-8. Hover a header for the metric definition.</div>
 
 <div class="ana-table-wrap"><div id="namespaceTable"></div></div>
+
+<section class="ana-guide">
+    <h2>Column guide</h2>
+    <div id="anaGuide"></div>
+</section>
 
 <script>
     const table = new Tabulator('#namespaceTable', {
@@ -47,47 +53,49 @@
         },
         columns: [
             anaCol.rowNumber(),
-            anaCol.text('Namespace', 'namespace', 'Namespace. Classes are rolled up by their exact namespace, sub namespaces are separate rows', { frozen: true }),
+            anaCol.text('Namespace', 'namespace', 'Namespace. Classes are rolled up by their exact namespace; sub namespaces are separate rows.', { frozen: true }),
             {
                 title: 'Types', columns: [
-                    anaCol.num('Classes', 'classes', 'Concrete classes'),
-                    anaCol.num('Abstract', 'abstract_classes', 'Abstract classes'),
-                    anaCol.num('Interfaces', 'interfaces', 'Interfaces'),
-                    anaCol.num('Traits', 'traits', 'Traits'),
-                    anaCol.num('Total types', 'total_types', 'Classes, abstract classes, interfaces and traits'),
-                    anaCol.num('Methods', 'methods', 'Methods of all classes in the namespace'),
+                    anaCol.num('Classes', 'classes', 'Concrete classes in the namespace.'),
+                    anaCol.num('Abstract', 'abstract_classes', 'Abstract classes. Together with interfaces they make the namespace abstract.'),
+                    anaCol.num('Interfaces', 'interfaces', 'Interfaces. A namespace that others depend on should hold mostly interfaces.'),
+                    anaCol.num('Traits', 'traits', 'Traits in the namespace.'),
+                    anaCol.num('Total types', 'total_types', 'Classes, abstract classes, interfaces and traits: the size of the namespace.'),
+                    anaCol.num('Methods', 'methods', 'Methods of all classes in the namespace.'),
                 ]
             },
             {
                 title: 'Complexity', columns: [
-                    anaCol.num('Cyclo total', 'total_cyclo', 'Sum of cyclomatic complexity of all methods'),
-                    anaCol.num('Cyclo avg', 'avg_cyclo', 'Average cyclomatic complexity per method'),
-                    anaCol.num('Cyclo max', 'max_cyclo', 'Most complex method'),
-                    anaCol.num('Cognitive total', 'total_cog', 'Sum of cognitive complexity of all methods'),
-                    anaCol.num('Pure %', 'pure_methods_pct', 'Percentage of pure methods'),
-                    anaCol.num('Hotspot score', 'hotspot_score', 'Cyclomatic total x Ca. Complex namespaces many namespaces depend on'),
+                    anaCol.num('Cyclo total', 'total_cyclo', 'Sum of cyclomatic complexity of all methods. Shows where the logic of the project lives.'),
+                    anaCol.num('Cyclo avg', 'avg_cyclo', 'Average cyclomatic complexity per method. Above about 5 the namespace holds complicated code.'),
+                    anaCol.num('Cyclo max', 'max_cyclo', 'Complexity of the most complex method in the namespace.'),
+                    anaCol.num('Cognitive total', 'total_cog', 'Sum of cognitive complexity: how hard the namespace is to read as a whole.'),
+                    anaCol.num('Pure %', 'pure_methods_pct', 'Share of pure methods. Higher is better.'),
+                    anaCol.num('Hotspot score', 'hotspot_score', 'Cyclomatic total x Ca. Complex namespaces that many namespaces depend on are the riskiest to change.'),
                 ]
             },
             {
                 title: 'Coupling', columns: [
-                    anaCol.num('Ca', 'afferent_ca', 'Afferent coupling: namespaces that call this one'),
-                    anaCol.num('Ce', 'efferent_ce', 'Efferent coupling: namespaces this one calls'),
-                    anaCol.num('Instability', 'instability', 'Ce / (Ca + Ce). 0 = stable, 1 = unstable'),
-                    anaCol.num('Abstractness', 'abstractness', '(Interfaces + abstract classes) / total types'),
-                    anaCol.num('Main seq. distance', 'main_seq_distance', '|Abstractness + Instability - 1|. Near 0 is balanced; near 1 is rigid or useless'),
-                    anaCol.num('Calls out', 'calls_out', 'Calls to other namespaces'),
-                    anaCol.num('Calls in', 'calls_in', 'Calls received from other namespaces'),
-                    anaCol.num('Calls internal', 'calls_internal', 'Calls between classes of the same namespace'),
-                    anaCol.num('Internal ratio', 'internal_call_ratio', 'Internal calls / (internal + calls out). High means cohesive, low means it mostly talks to other namespaces'),
-                    anaCol.flag('In cycle', 'in_cycle', 'Part of a dependency cycle between namespaces'),
-                    anaCol.text('Namespaces used', 'namespaces_used', 'Namespaces this one calls'),
-                    anaCol.text('Namespaces using this', 'namespaces_using_this', 'Namespaces that call this one'),
+                    anaCol.num('Ca', 'afferent_ca', 'Afferent coupling: namespaces that call this one. High means it must stay stable.'),
+                    anaCol.num('Ce', 'efferent_ce', 'Efferent coupling: namespaces this one calls. High means it depends on a lot of the project.'),
+                    anaCol.num('Instability', 'instability', 'Ce / (Ca + Ce). 0 is stable, 1 is unstable. Stable namespaces should be abstract.'),
+                    anaCol.num('Abstractness', 'abstractness', '(Interfaces + abstract classes) / total types. 1 is fully abstract.'),
+                    anaCol.num('Main seq. distance', 'main_seq_distance', 'Abs(abstractness + instability - 1). Near 0 is balanced; near 1 is rigid or useless.'),
+                    anaCol.num('Calls out', 'calls_out', 'Calls to other namespaces: the real outside dependencies.'),
+                    anaCol.num('Calls in', 'calls_in', 'Calls received from other namespaces: how much others use it.'),
+                    anaCol.num('Calls internal', 'calls_internal', 'Calls between classes of the same namespace.'),
+                    anaCol.num('Internal ratio', 'internal_call_ratio', 'Internal calls / (internal + calls out). High means cohesive; low means it mostly talks to other namespaces and may belong elsewhere.'),
+                    anaCol.flag('In cycle', 'in_cycle', 'Part of a dependency cycle between namespaces: A reaches B and B reaches A again. Cycles make namespaces impossible to separate or release alone.'),
+                    anaCol.text('Namespaces used', 'namespaces_used', 'Namespaces this one calls.'),
+                    anaCol.text('Namespaces using this', 'namespaces_using_this', 'Namespaces that call this one.'),
                 ]
             },
         ],
     });
 
     anaInitToolbar(table, 'namespace_metrics.csv');
+    anaInitGuide(table);
+    anaInitFind(table);
     anaInitLayout(table, 'namespace_metrics', [{ column: 'total_cyclo', dir: 'desc' }]);
     anaInitPresets(table, [
         { label: 'Hotspots', tip: 'Complex namespaces many namespaces depend on, by cyclomatic total x Ca', filter: row => row.hotspot_score > 0, sort: [{ column: 'hotspot_score', dir: 'desc' }] },
