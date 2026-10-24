@@ -20,6 +20,10 @@ error_reporting(E_ALL);
  */
 class ExportMetricsRule implements Rule
 {
+    public function __construct(private readonly string $projectName)
+    {
+    }
+
     public function getNodeType(): string
     {
         return CollectedDataNode::class;
@@ -61,6 +65,10 @@ class ExportMetricsRule implements Rule
             visibility = VALUES(visibility), is_static = VALUES(is_static), is_readonly = VALUES(is_readonly),
             is_constant = VALUES(is_constant), type_hint = VALUES(type_hint)
         ");
+
+        $mysqli->query("TRUNCATE TABLE project");
+        $stmtProject = $mysqli->prepare("INSERT INTO project (name) VALUES (?)");
+        $stmtProject->execute([$this->projectName]);
 
         $mysqli->query("TRUNCATE TABLE class_relations");
         $mysqli->query("TRUNCATE TABLE properties");

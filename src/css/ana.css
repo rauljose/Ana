@@ -1,0 +1,109 @@
+:root {
+    --bg-color: #f8f9fa;
+    --panel-bg: #ffffff;
+    --border-color: #dee2e6;
+    --text-main: #212529;
+    --accent: #0d6efd;
+    --accent-hover: #0b5ed7;
+}
+
+/* --- Top menu (partials/nav.php) --- */
+.ana-nav {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 0 20px;
+    background-color: var(--panel-bg);
+    border-bottom: 1px solid var(--border-color);
+    flex-shrink: 0;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+.ana-brand { font-weight: bold; font-size: 1.2rem; color: var(--accent); }
+.ana-project { font-size: 0.9rem; color: #495057; white-space: nowrap; }
+.ana-menu { display: flex; list-style: none; margin: 0 0 0 auto; padding: 0; gap: 4px; flex-wrap: wrap; }
+.ana-menu a {
+    display: block;
+    padding: 12px 14px;
+    text-decoration: none;
+    color: var(--text-main);
+    font-weight: 500;
+    border-bottom: 3px solid transparent;
+}
+.ana-menu a:hover { color: var(--accent); }
+.ana-menu a.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* --- Tabulator pages --- */
+body.ana-table-page {
+    margin: 0;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-main);
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+}
+.ana-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 20px;
+    background: var(--panel-bg);
+    border-bottom: 1px solid var(--border-color);
+    flex-shrink: 0;
+}
+.ana-toolbar h1 { margin: 0; font-size: 1.1rem; }
+.ana-toolbar .ana-status { margin-left: auto; font-size: 0.9rem; color: #495057; }
+.ana-toolbar button, .ana-toolbar summary {
+    padding: 6px 14px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background: var(--panel-bg);
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+.ana-toolbar button:hover, .ana-toolbar summary:hover { background: var(--bg-color); }
+.ana-columns { position: relative; }
+.ana-columns-list {
+    position: absolute;
+    z-index: 100;
+    top: 100%;
+    left: 0;
+    max-height: 60vh;
+    overflow-y: auto;
+    min-width: 260px;
+    padding: 8px 12px;
+    background: var(--panel-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+.ana-columns-list label { display: block; padding: 2px 0; font-size: 0.9rem; cursor: pointer; }
+.ana-filter-hint { padding: 6px 20px; font-size: 0.8rem; color: #6c757d; flex-shrink: 0; }
+.ana-table-wrap { flex: 1; min-height: 0; padding: 0 20px 20px; }
+.ana-table-wrap .tabulator { height: 100%; }
+
+/* --- Index page --- */
+body.ana-index-page {
+    margin: 0;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-main);
+}
+.ana-index { max-width: 1100px; margin: 0 auto; padding: 24px 20px; }
+.ana-index h1 { margin: 0 0 4px; font-size: 1.6rem; }
+.ana-index .ana-subtitle { margin: 0 0 24px; color: #6c757d; font-size: 0.9rem; }
+.ana-stats, .ana-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 14px; margin-bottom: 28px; }
+.ana-cards { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+.ana-stat, .ana-card {
+    background: var(--panel-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 14px 16px;
+}
+.ana-stat .value { font-size: 1.6rem; font-weight: bold; }
+.ana-stat .label { font-size: 0.85rem; color: #6c757d; }
+.ana-card { text-decoration: none; color: var(--text-main); }
+.ana-card:hover { border-color: var(--accent); }
+.ana-card h2 { margin: 0 0 6px; font-size: 1.05rem; color: var(--accent); }
+.ana-card p { margin: 0; font-size: 0.9rem; color: #495057; }
+.ana-index .ana-error { color: #dc3545; }

@@ -16,6 +16,13 @@ $mysqli->query("CREATE DATABASE IF NOT EXISTS `$dbName` CHARACTER SET utf8mb4 CO
 $mysqli->select_db($dbName);
 
 $mysqli->query("
+    CREATE TABLE IF NOT EXISTS project (
+        name VARCHAR(255) NOT NULL,
+        analyzed_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
+");
+
+$mysqli->query("
     CREATE TABLE IF NOT EXISTS classes (
         id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
         class_name VARCHAR(255) NOT NULL UNIQUE,

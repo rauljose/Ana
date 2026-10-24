@@ -38,6 +38,16 @@ switch ($action) {
             // Append a unique string ID for the frontend (to distinguish from the DB 'id' INT column)
             $methods[$stringId]['full_method_id'] = $stringId;
 
+            // Name parts for the frontend. Functions have no class: their namespace lives in method_name
+            $isFunction = $row['class_name'] === '';
+            $nameParts = explode('\\', $isFunction ? $row['method_name'] : $row['class_name']);
+            $shortName = array_pop($nameParts);
+            $methods[$stringId]['namespace'] = implode('\\', $nameParts) ?: '[Global]';
+            $methods[$stringId]['class_short_name'] = $isFunction ? '' : $shortName;
+            $methods[$stringId]['method_short_name'] = $isFunction ? $shortName : $row['method_name'];
+            $methods[$stringId]['fqn'] = $isFunction ? $row['method_name'] : $stringId;
+            $methods[$stringId]['kind'] = !$isFunction ? 'Method' : ($row['is_builtin'] ? 'Native Function' : 'Function');
+
             // Append default relational metrics to be populated below
             $methods[$stringId]['props_read'] = 0;
             $methods[$stringId]['props_written'] = 0;

@@ -12,6 +12,8 @@ $preSelectedClasses = array_values(array_filter(array_map('trim', explode(',',$_
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
 
+    <link rel="stylesheet" href="css/ana.css">
+
     <!-- Reusable Dual Listbox Widget -->
     <link rel="stylesheet" href="js/DualListbox/DualListbox.css">
     <script src="js/DualListbox/DualListbox.js"></script>
@@ -157,10 +159,7 @@ $preSelectedClasses = array_values(array_filter(array_map('trim', explode(',',$_
 </head>
 <body>
 
-<header>
-    <a href="index.php">&larr; Home</a>
-    <h1>Class Metrics Graphs</h1>
-</header>
+<?php require __DIR__ . '/partials/nav.php'; ?>
 
 <div class="top-controls">
     <div class="checkbox-group">
