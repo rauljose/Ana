@@ -8,7 +8,7 @@ use PHPStan\Analyser\Scope;
 use PHPStan\Collectors\Collector;
 
 /**
- * @implements Collector<Node\FunctionLike, array{class: string, method: string, visibility: string, static: int, builtin: int, cyclo: int, cog: int, pure: int, num_params: int, num_defaults: int, has_sensitive: int, num_ref_params: int, num_obj_params: int, return_type: string, is_ends: int, signature: string, globals: list<array{type: string, name: string}>, type_hints: list<string>, prop_access: list<array{prop: string, type: string}>}>
+ * @implements Collector<Node\FunctionLike, array{class: string, method: string, visibility: string, static: int, builtin: int, cyclo: int, cog: int, pure: int, num_params: int, num_defaults: int, has_sensitive: int, num_ref_params: int, num_obj_params: int, return_type: string, is_ends: int, signature: string, doc_comment: string|null, globals: list<array{type: string, name: string}>, type_hints: list<string>, prop_access: list<array{prop: string, type: string}>}>
  */
 class MethodDefinitionCollector implements Collector
 {
@@ -137,8 +137,12 @@ class MethodDefinitionCollector implements Collector
             }
         }
 
+        $docComment = $node->getDocComment();
+
+        // The pretty printer prints attached comments: keep the doc block out of the signature
         $sigNode = clone $node;
         $sigNode->stmts = null;
+        $sigNode->setAttribute('comments', []);
         $signature = rtrim($printer->prettyPrint([$sigNode]), "; \n\r\t");
 
         list($cyclo, $cog, $globals, $propAccess) = $this->analyzeMethodBody($stmts);
@@ -160,6 +164,7 @@ class MethodDefinitionCollector implements Collector
           'return_type' => $returnTypeStr,
           'is_ends' => $isEnds,
           'signature' => $signature,
+          'doc_comment' => $docComment?->getText(),
           'globals' => $globals,
           'type_hints' => array_values(array_unique($typeHints)),
           'prop_access' => $propAccess,

@@ -19,7 +19,7 @@ switch ($type) {
         // Everything about one class that the summary APIs only expose as counts
         echo json_encode([
             'properties' => rows($mysqli, "
-                SELECT property_name, visibility, is_static, is_readonly, is_constant, type_hint
+                SELECT property_name, visibility, is_static, is_readonly, is_constant, type_hint, doc_comment
                 FROM properties WHERE class_name = ? ORDER BY is_constant DESC, property_name", $name),
             'parents' => rows($mysqli, "
                 SELECT target_class AS class_name, relation_type

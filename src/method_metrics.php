@@ -72,7 +72,8 @@
                     anaCol.num('Object params', 'num_object_parameters', 'Parameters typed with a class'),
                     anaCol.flag('Sensitive param', 'has_sensitive_parameter', 'Has a #[SensitiveParameter] parameter'),
                     anaCol.text('Return type', 'return_type', 'Declared or inferred return type'),
-                    anaCol.text('Signature', 'signature', 'Full signature'),
+                    anaCol.text('Signature', 'signature', 'Full signature, without the doc block'),
+                    anaCol.text('Doc comment', 'doc_comment', 'Doc block of the method'),
                 ]
             },
             {

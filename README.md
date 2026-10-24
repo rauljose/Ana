@@ -10,7 +10,7 @@ vendor\bin\phpstan clear-result-cache
 vendor\bin\phpstan analyse 
 ## Project name
 Set `anaProjectName` in phpstan.neon. It is saved in the `project` table and shown in the menu of every page.
-Existing databases need the new table: run create_db.php again.
+Existing databases need the new tables and columns (project, doc_comment): run create_db.php again, then analyse again.
 
 ## Pages
 Open `src/index.php` through a PHP web server. The top menu links to every page.

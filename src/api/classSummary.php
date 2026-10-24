@@ -6,7 +6,7 @@ $report = [];
 
 // 1. Base Classes, Modifiers & Namespaces
 $res = $mysqli->query("
-    SELECT class_name, is_interface, is_trait, is_abstract, is_final, is_readonly, is_static 
+    SELECT class_name, is_interface, is_trait, is_abstract, is_final, is_readonly, is_static, doc_comment 
     FROM classes
 ");
 while ($row = $res->fetch_assoc()) {
@@ -29,6 +29,7 @@ while ($row = $res->fetch_assoc()) {
         'type' => $type,
         'is_static_class' => (bool) $row['is_static'],
         'is_readonly_class' => (bool) $row['is_readonly'],
+        'doc_comment' => $row['doc_comment'] ?? '',
         'extends' => '',
         'implements' => '',
         'uses_traits' => '',

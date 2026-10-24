@@ -13,7 +13,8 @@ CREATE TABLE IF NOT EXISTS classes (
     is_readonly TINYINT(1) DEFAULT 0,
     is_static TINYINT(1) DEFAULT 0,
     is_interface TINYINT(1) NOT NULL DEFAULT 0,
-    is_trait TINYINT(1) NOT NULL DEFAULT 0
+    is_trait TINYINT(1) NOT NULL DEFAULT 0,
+    doc_comment TEXT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 DROP TABLE IF EXISTS class_relations;
@@ -44,6 +45,7 @@ CREATE TABLE methods (
     return_type VARCHAR(255) NOT NULL DEFAULT 'void',
     is_ends TINYINT(1) NOT NULL DEFAULT 0,
     signature TEXT,
+    doc_comment TEXT,
     UNIQUE KEY idx_class_method (class_name, method_name)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
@@ -76,6 +78,7 @@ CREATE TABLE IF NOT EXISTS properties (
     is_readonly TINYINT(1) NOT NULL DEFAULT 0,
     is_constant TINYINT(1) NOT NULL DEFAULT 0,
     type_hint VARCHAR(255),
+    doc_comment TEXT,
     UNIQUE KEY idx_class_prop (class_name, property_name)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 

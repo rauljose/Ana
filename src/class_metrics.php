@@ -62,6 +62,7 @@
                     anaCol.list('Type', 'type', 'Class, Abstract Class, Final Class, Interface or Trait'),
                     anaCol.flag('Static class', 'is_static_class', 'Only static methods'),
                     anaCol.flag('Readonly class', 'is_readonly_class', 'Declared readonly'),
+                    anaCol.text('Doc comment', 'doc_comment', 'Doc block of the class'),
                 ]
             },
             {

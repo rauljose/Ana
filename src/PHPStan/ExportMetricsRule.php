@@ -46,11 +46,12 @@ class ExportMetricsRule implements Rule
         $mysqli->begin_transaction();
 
         $stmtClass = $mysqli->prepare("
-            INSERT INTO classes (class_name, is_interface, is_trait, is_abstract, is_final, is_readonly, is_static) 
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO classes (class_name, is_interface, is_trait, is_abstract, is_final, is_readonly, is_static, doc_comment) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             ON DUPLICATE KEY UPDATE 
             is_interface = VALUES(is_interface), is_trait = VALUES(is_trait), is_abstract = VALUES(is_abstract), 
-            is_final = VALUES(is_final), is_readonly = VALUES(is_readonly), is_static = VALUES(is_static)
+            is_final = VALUES(is_final), is_readonly = VALUES(is_readonly), is_static = VALUES(is_static),
+            doc_comment = VALUES(doc_comment)
         ");
 
         $stmtRelation = $mysqli->prepare("
@@ -59,11 +60,11 @@ class ExportMetricsRule implements Rule
         ");
 
         $stmtProperty = $mysqli->prepare("
-            INSERT INTO properties (class_name, property_name, visibility, is_static, is_readonly, is_constant, type_hint) 
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO properties (class_name, property_name, visibility, is_static, is_readonly, is_constant, type_hint, doc_comment) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             ON DUPLICATE KEY UPDATE 
             visibility = VALUES(visibility), is_static = VALUES(is_static), is_readonly = VALUES(is_readonly),
-            is_constant = VALUES(is_constant), type_hint = VALUES(type_hint)
+            is_constant = VALUES(is_constant), type_hint = VALUES(type_hint), doc_comment = VALUES(doc_comment)
         ");
 
         $mysqli->query("TRUNCATE TABLE project");
@@ -77,7 +78,7 @@ class ExportMetricsRule implements Rule
             foreach ($fileClasses as $cls) {
                 $stmtClass->execute([
                   $cls['class'], $cls['is_interface'], $cls['is_trait'], $cls['abstract'],
-                  $cls['final'], $cls['readonly'], $cls['static'],
+                  $cls['final'], $cls['readonly'], $cls['static'], $cls['doc_comment'],
                 ]);
 
                 if ($cls['extends'] !== null) {
@@ -92,7 +93,7 @@ class ExportMetricsRule implements Rule
                 foreach ($cls['properties'] as $prop) {
                     $stmtProperty->execute([
                       $cls['class'], $prop['name'], $prop['visibility'], $prop['is_static'],
-                      $prop['is_readonly'], $prop['is_constant'], $prop['type_hint']
+                      $prop['is_readonly'], $prop['is_constant'], $prop['type_hint'], $prop['doc_comment']
                     ]);
                 }
             }
@@ -103,16 +104,17 @@ class ExportMetricsRule implements Rule
                 class_name, method_name, visibility, is_static, is_builtin, cyclo_complexity, 
                 cognitive_complexity, is_pure, num_parameters, num_default_parameters, 
                 has_sensitive_parameter, num_reference_parameters, num_object_parameters, 
-                return_type, is_ends, signature
+                return_type, is_ends, signature, doc_comment
             ) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON DUPLICATE KEY UPDATE 
             visibility = VALUES(visibility), is_static = VALUES(is_static), is_builtin = VALUES(is_builtin),
             cyclo_complexity = VALUES(cyclo_complexity), cognitive_complexity = VALUES(cognitive_complexity), 
             is_pure = VALUES(is_pure), num_parameters = VALUES(num_parameters),
             num_default_parameters = VALUES(num_default_parameters), has_sensitive_parameter = VALUES(has_sensitive_parameter),
             num_reference_parameters = VALUES(num_reference_parameters), num_object_parameters = VALUES(num_object_parameters),
-            return_type = VALUES(return_type), is_ends = VALUES(is_ends), signature = VALUES(signature)
+            return_type = VALUES(return_type), is_ends = VALUES(is_ends), signature = VALUES(signature),
+            doc_comment = VALUES(doc_comment)
         ");
 
         $stmtGlobals = $mysqli->prepare("
@@ -134,7 +136,7 @@ class ExportMetricsRule implements Rule
                   $def['class'], $def['method'], $def['visibility'], $def['static'], $def['builtin'],
                   $def['cyclo'], $def['cog'], $def['pure'], $def['num_params'], $def['num_defaults'],
                   $def['has_sensitive'], $def['num_ref_params'], $def['num_obj_params'],
-                  $def['return_type'], $def['is_ends'], $def['signature']
+                  $def['return_type'], $def['is_ends'], $def['signature'], $def['doc_comment']
                 ]);
 
                 foreach ($def['globals'] as $global) {

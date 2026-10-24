@@ -97,6 +97,7 @@ $name = $_GET['name'] ?? '';
             link(`call_graph.php?level=class&classname=${encodeURIComponent(info.class_name)}`, 'Call graph of this class'),
             link(`method_graph.php?classname=${encodeURIComponent(info.class_name)}`, 'Method graphs of this class')
         );
+        if (info.doc_comment) links.before(el('pre', info.doc_comment));
         const badges = el('p');
         [['is_god_class', 'God class'], ['is_data_class', 'Data class'], ['is_stateless_service', 'Stateless service']]
             .filter(([field]) => info[field])
@@ -134,6 +135,7 @@ $name = $_GET['name'] ?? '';
             { title: 'Static', cell: row => yesNo(row.is_static) },
             { title: 'Readonly', cell: row => yesNo(row.is_readonly) },
             { title: 'Constant', cell: row => yesNo(row.is_constant) },
+            { title: 'Doc comment', cell: row => row.doc_comment || '' },
         ], extra.properties);
         addSection('Classes this class uses', [
             { title: 'Class', cell: row => classLink(row.class_name) }, { title: 'Calls', cell: row => row.calls, num: true }
@@ -176,6 +178,10 @@ $name = $_GET['name'] ?? '';
         const box = document.getElementById('sections');
         box.appendChild(el('h2', 'Signature'));
         box.appendChild(el('pre', info.signature));
+        if (info.doc_comment) {
+            box.appendChild(el('h2', 'Doc comment'));
+            box.appendChild(el('pre', info.doc_comment));
+        }
 
         addSection('Calls out', [
             { title: 'Callee', cell: row => methodLink(row.to_class, row.to_method, row.is_builtin === '1') },
