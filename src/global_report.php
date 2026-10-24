@@ -38,10 +38,14 @@
 <section class="ana-guide">
     <h2>Not available in the analysis data</h2>
     <dl>
-        <dt>Read or write of globals</dt>
-        <dd>Superglobals and <code>global</code> variables are stored by name only. Their Access is Unknown. Constants can only be read.</dd>
-        <dt>Read/Write</dt>
-        <dd>A property that is both read and written is stored as Write, so Read/Write cannot be told apart from Write. Writes through an array element (<code>$this-&gt;items[] = $x</code>), through ++ and -- and through by-reference arguments are not detected as writes.</dd>
+        <dt>Objects held in a property</dt>
+        <dd>Calling a method on a property (<code>$this-&gt;list-&gt;add()</code>) or assigning to a member of it (<code>$this-&gt;obj-&gt;x = 1</code>) counts as a Read of the property: the object may change, the property itself does not.</dd>
+        <dt>By-reference arguments</dt>
+        <dd>Only arguments passed to by-reference parameters of PHP built-in functions (<code>sort($this-&gt;items)</code>, <code>array_push()</code>, <code>preg_match()</code>...) count as writes, shown as Read/Write. By-reference parameters of project functions and methods are not followed.</dd>
+        <dt>Unused global declarations</dt>
+        <dd>A <code>global $x</code> that the method never uses is shown as Read.</dd>
+        <dt>Data from before this change</dt>
+        <dd>Databases analysed with an older Ana have no Read/Write and no access for globals. Analyse again.</dd>
         <dt>Other objects</dt>
         <dd>Only <code>$this-&gt;prop</code>, <code>self::</code> and <code>static::</code> members of the method's own class are recorded. <code>$other-&gt;prop</code>, <code>Other::$prop</code>, <code>Other::CONST</code> and <code>parent::</code> are not.</dd>
         <dt>Inherited members</dt>
@@ -67,7 +71,7 @@
         groupToggleElement: 'header',
         groupHeader: (value, count, data) => {
             const classes = new Set(data.map(row => row.class_name)).size;
-            const writers = data.filter(row => row.access === 'Write').length;
+            const writers = data.filter(row => row.access !== 'Read').length;
             return `${value} <span style="font-weight:normal;color:#495057">&mdash; used by ${count} methods in ${classes} classes, ${writers} writing</span>`;
         },
         columns: [
@@ -78,7 +82,7 @@
                     anaCol.list('Type', 'symbol_type', 'Superglobal variable ($_GET...), Global variable (global keyword), Constant, Property, Static property, Class constant, or Inherited member (declared in a parent class or trait). Static properties and globals are shared state: the riskiest kinds.'),
                     anaCol.flag('Native', 'is_native', 'Defined by PHP itself: superglobals and built-in constants. Native globals are expected; project ones are the dependencies to question.'),
                     anaCol.text('FQN', 'symbol_fqn', 'Fully qualified name: Class::$property, Class::CONSTANT, or the global name.'),
-                    anaCol.list('Access', 'access', 'Read, or Write (the method assigns it, it may also read it). Unknown for globals: the analysis does not record how they are used. Constants are always Read.'),
+                    anaCol.list('Access', 'access', 'Read, Write or Read/Write (for example ++, .=, array_push). Assigning to an element, as in $this->items[] = $x, is a Write of the property. Constants are always Read.'),
                 ]
             },
             {
@@ -106,7 +110,7 @@
         { label: 'Global variables', tip: 'Methods using the global keyword: hidden dependencies on state defined elsewhere', filter: row => row.symbol_type === 'Global variable', sort: [{ column: 'symbol', dir: 'asc' }] },
         { label: 'Project constants', tip: 'Constants that PHP does not define itself: the project configuration read all over the code', filter: row => row.symbol_type === 'Constant' && !row.is_native, sort: [{ column: 'symbol', dir: 'asc' }] },
         { label: 'Static properties', tip: 'Shared state that lives as long as the process: any method can change it for everyone', filter: row => row.symbol_type === 'Static property', sort: [{ column: 'symbol_fqn', dir: 'asc' }] },
-        { label: 'Writes', tip: 'Properties assigned by a method. Group by symbol to see who changes the same property', filter: row => row.access === 'Write', sort: [{ column: 'symbol_fqn', dir: 'asc' }] },
+        { label: 'Writes', tip: 'Symbols a method assigns or modifies. Group by symbol to see who changes the same one', filter: row => row.access === 'Write' || row.access === 'Read/Write', sort: [{ column: 'symbol_fqn', dir: 'asc' }] },
     ]);
 </script>
 </body>

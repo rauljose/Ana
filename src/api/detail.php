@@ -39,7 +39,7 @@ switch ($type) {
                 SELECT method_name, property_name, access_type
                 FROM method_property_access WHERE class_name = ? ORDER BY method_name, property_name", $name),
             'globals' => rows($mysqli, "
-                SELECT method_name, global_type, global_name
+                SELECT method_name, global_type, global_name, access
                 FROM method_globals WHERE class_name = ? ORDER BY method_name, global_type, global_name", $name),
         ]);
         break;
@@ -68,7 +68,7 @@ switch ($type) {
                 SELECT property_name, access_type
                 FROM method_property_access WHERE class_name = ? AND method_name = ? ORDER BY property_name", $className, $methodName),
             'globals' => rows($mysqli, "
-                SELECT global_type, global_name
+                SELECT global_type, global_name, access
                 FROM method_globals WHERE class_name = ? AND method_name = ? ORDER BY global_type, global_name", $className, $methodName),
         ]);
         break;

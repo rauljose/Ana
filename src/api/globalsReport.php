@@ -13,6 +13,11 @@ foreach (get_defined_constants(true) as $category => $constants) {
     $nativeConstants += $constants;
 }
 
+function accessLabel(string $access): string
+{
+    return ['READ' => 'Read', 'WRITE' => 'Write', 'READ_WRITE' => 'Read/Write'][$access] ?? $access;
+}
+
 function usedBy(string $className, string $methodName): array
 {
     $isFunction = $className === '';
@@ -31,7 +36,7 @@ function usedBy(string $className, string $methodName): array
 $report = [];
 
 // 1. Superglobals, global variables and constants
-$res = $mysqli->query("SELECT class_name, method_name, global_type, global_name FROM method_globals");
+$res = $mysqli->query("SELECT class_name, method_name, global_type, global_name, access FROM method_globals");
 while ($row = $res->fetch_assoc()) {
     $name = $row['global_name'];
     switch ($row['global_type']) {
@@ -52,13 +57,12 @@ while ($row = $res->fetch_assoc()) {
             break;
     }
 
-    // The analysis does not record whether a global is read or written. Constants can only be read
     $report[] = [
         'symbol_type' => $symbolType,
         'is_native' => $isNative,
         'symbol' => $symbol,
         'symbol_fqn' => $symbol,
-        'access' => $row['global_type'] === 'CONSTANT' ? 'Read' : 'Unknown',
+        'access' => accessLabel($row['access']),
     ] + usedBy($row['class_name'], $row['method_name']);
 }
 
@@ -86,13 +90,12 @@ while ($row = $res->fetch_assoc()) {
         $symbolFqn = $row['class_name'] . '::$' . $name;
     }
 
-    // WRITE means written; the analysis does not say whether it was also read
     $report[] = [
         'symbol_type' => $symbolType,
         'is_native' => false,
         'symbol' => $symbol,
         'symbol_fqn' => $symbolFqn,
-        'access' => $row['access_type'] === 'READ' ? 'Read' : 'Write',
+        'access' => accessLabel($row['access_type']),
     ] + usedBy($row['class_name'], $row['method_name']);
 }
 

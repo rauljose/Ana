@@ -118,8 +118,8 @@ class ExportMetricsRule implements Rule
         ");
 
         $stmtGlobals = $mysqli->prepare("
-            INSERT IGNORE INTO method_globals (class_name, method_name, global_type, global_name) 
-            VALUES (?, ?, ?, ?)
+            INSERT IGNORE INTO method_globals (class_name, method_name, global_type, global_name, access) 
+            VALUES (?, ?, ?, ?, ?)
         ");
 
         $stmtPropAccess = $mysqli->prepare("
@@ -140,7 +140,7 @@ class ExportMetricsRule implements Rule
                 ]);
 
                 foreach ($def['globals'] as $global) {
-                    $stmtGlobals->execute([$def['class'], $def['method'], $global['type'], $global['name']]);
+                    $stmtGlobals->execute([$def['class'], $def['method'], $global['type'], $global['name'], $global['access']]);
                 }
                 foreach ($def['type_hints'] as $targetClass) {
                     $stmtRelation->execute([$def['class'], $targetClass, 'TYPE_HINT']);

@@ -75,6 +75,7 @@ $name = $_GET['name'] ?? '';
         box.appendChild(table);
     };
 
+    const accessLabel = (access) => ({ READ: 'Read', WRITE: 'Write', READ_WRITE: 'Read/Write' })[access] || access;
     const yesNo = (value) => (value === true || value === 1 || value === '1') ? 'yes' : 'no';
 
     async function showClass() {
@@ -146,12 +147,13 @@ $name = $_GET['name'] ?? '';
         addSection('Property access by method', [
             { title: 'Method', cell: row => methodLink(info.class_name, row.method_name, false) },
             { title: 'Property', cell: row => row.property_name },
-            { title: 'Access', cell: row => row.access_type },
+            { title: 'Access', cell: row => accessLabel(row.access_type) },
         ], extra.prop_access);
         addSection('Global state by method', [
             { title: 'Method', cell: row => methodLink(info.class_name, row.method_name, false) },
             { title: 'Type', cell: row => row.global_type },
             { title: 'Name', cell: row => row.global_name },
+            { title: 'Access', cell: row => accessLabel(row.access) },
         ], extra.globals);
     }
 
@@ -192,10 +194,11 @@ $name = $_GET['name'] ?? '';
             { title: 'Calls', cell: row => row.calls, num: true }
         ], extra.calls_in);
         addSection('Property access', [
-            { title: 'Property', cell: row => row.property_name }, { title: 'Access', cell: row => row.access_type }
+            { title: 'Property', cell: row => row.property_name }, { title: 'Access', cell: row => accessLabel(row.access_type) }
         ], extra.prop_access);
         addSection('Global state', [
-            { title: 'Type', cell: row => row.global_type }, { title: 'Name', cell: row => row.global_name }
+            { title: 'Type', cell: row => row.global_type }, { title: 'Name', cell: row => row.global_name },
+            { title: 'Access', cell: row => accessLabel(row.access) }
         ], extra.globals);
     }
 

@@ -190,7 +190,7 @@ while ($row = $res->fetch_assoc()) {
 $res = $mysqli->query("
     SELECT class_name, COUNT(DISTINCT property_name) as written_count
     FROM method_property_access
-    WHERE access_type = 'WRITE'
+    WHERE access_type IN ('WRITE', 'READ_WRITE')
     GROUP BY class_name
 ");
 while ($row = $res->fetch_assoc()) {

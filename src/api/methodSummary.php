@@ -95,10 +95,11 @@ switch ($action) {
             $stringId = $row['class_name'] . '::' . $row['method_name'];
             if (!isset($methods[$stringId])) continue;
 
-            if ($row['access_type'] === 'READ') {
+            if ($row['access_type'] !== 'WRITE') {
                 $methods[$stringId]['props_read']++;
                 $methods[$stringId]['props_read_list'][] = $row['property_name'];
-            } else {
+            }
+            if ($row['access_type'] !== 'READ') {
                 $methods[$stringId]['props_written']++;
                 $methods[$stringId]['props_written_list'][] = $row['property_name'];
             }

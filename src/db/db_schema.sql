@@ -64,6 +64,7 @@ CREATE TABLE IF NOT EXISTS method_globals (
     method_name VARCHAR(255) NOT NULL,
     global_type ENUM('SUPERGLOBAL', 'GLOBAL_KEYWORD', 'CONSTANT') NOT NULL,
     global_name VARCHAR(255) NOT NULL,
+    access ENUM('READ', 'WRITE', 'READ_WRITE') NOT NULL DEFAULT 'READ',
     UNIQUE KEY idx_method_global (class_name, method_name, global_type, global_name)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
@@ -88,6 +89,6 @@ CREATE TABLE IF NOT EXISTS method_property_access (
     class_name VARCHAR(255) NOT NULL,
     method_name VARCHAR(255) NOT NULL,
     property_name VARCHAR(255) NOT NULL,
-    access_type ENUM('READ', 'WRITE') NOT NULL,
+    access_type ENUM('READ', 'WRITE', 'READ_WRITE') NOT NULL,
     UNIQUE KEY idx_method_prop_access (class_name, method_name, property_name, access_type)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;

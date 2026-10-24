@@ -8,7 +8,7 @@ use PHPStan\Analyser\Scope;
 use PHPStan\Collectors\Collector;
 
 /**
- * @implements Collector<Node\FunctionLike, array{class: string, method: string, visibility: string, static: int, builtin: int, cyclo: int, cog: int, pure: int, num_params: int, num_defaults: int, has_sensitive: int, num_ref_params: int, num_obj_params: int, return_type: string, is_ends: int, signature: string, doc_comment: string|null, globals: list<array{type: string, name: string}>, type_hints: list<string>, prop_access: list<array{prop: string, type: string}>}>
+ * @implements Collector<Node\FunctionLike, array{class: string, method: string, visibility: string, static: int, builtin: int, cyclo: int, cog: int, pure: int, num_params: int, num_defaults: int, has_sensitive: int, num_ref_params: int, num_obj_params: int, return_type: string, is_ends: int, signature: string, doc_comment: string|null, globals: list<array{type: string, name: string, access: string}>, type_hints: list<string>, prop_access: list<array{prop: string, type: string}>}>
  */
 class MethodDefinitionCollector implements Collector
 {
@@ -176,9 +176,68 @@ class MethodDefinitionCollector implements Collector
         $cyclo = 1;
         $cog = 0;
         $globals = [];
-        $propAccess = [];
+        $symbolAccess = [];
+        $globalVars = [];
+        $superglobals = ['_GET', '_POST', '_SESSION', '_COOKIE', '_SERVER', '_ENV', '_FILES', '_REQUEST', 'GLOBALS'];
+        $isSelfOrStatic = fn(Node $class): bool => $class instanceof Node\Name && in_array(strtolower($class->toString()), ['self', 'static'], true);
 
-        $traverse = function(Node $node, int $nesting) use (&$traverse, &$cyclo, &$cog, &$globals, &$propAccess): void {
+        // The symbol a node reads or writes: a property or constant of this class, a superglobal or a variable
+        // declared with the global keyword. Returns [kind, name] or null
+        $symbolOf = function(Node $node) use (&$globalVars, $superglobals, $isSelfOrStatic): ?array {
+            if ($node instanceof Node\Expr\PropertyFetch && $node->var instanceof Node\Expr\Variable && is_string($node->var->name) && $node->var->name === 'this' && $node->name instanceof Node\Identifier) {
+                return ['prop', $node->name->toString()];
+            }
+            if ($node instanceof Node\Expr\StaticPropertyFetch && $isSelfOrStatic($node->class) && $node->name instanceof Node\VarLikeIdentifier) {
+                return ['prop', $node->name->toString()];
+            }
+            if ($node instanceof Node\Expr\ClassConstFetch && $isSelfOrStatic($node->class) && $node->name instanceof Node\Identifier && strtolower($node->name->toString()) !== 'class') {
+                return ['prop', $node->name->toString()];
+            }
+            if ($node instanceof Node\Expr\Variable && is_string($node->name)) {
+                if (in_array($node->name, $superglobals, true)) return ['super', $node->name];
+                if (isset($globalVars[$node->name])) return ['global', $node->name];
+            }
+            return null;
+        };
+
+        // flag is READ or WRITE; a symbol with both ends up as READ_WRITE
+        $record = function(array $symbol, string $flag) use (&$symbolAccess): void {
+            $symbolAccess[$symbol[0] . '|' . $symbol[1]][$flag] = true;
+        };
+
+        // $this->items['a']['b'] changes $this->items
+        $root = function(Node $node): Node {
+            while ($node instanceof Node\Expr\ArrayDimFetch) $node = $node->var;
+            return $node;
+        };
+
+        $traverse = null;
+        $markTarget = null;
+
+        // Marks the target of an assignment, increment, unset or reference. Anything that is not a tracked
+        // symbol is traversed normally, so the reads and calls inside it are still counted
+        $markTarget = function(Node $target, array $flags, int $nesting) use (&$traverse, &$markTarget, $symbolOf, $record, $root): void {
+            if ($target instanceof Node\Expr\Array_ || $target instanceof Node\Expr\List_) {
+                foreach ($target->items as $item) {
+                    if ($item !== null) $markTarget($item->value, $flags, $nesting);
+                }
+                return;
+            }
+
+            $symbol = $symbolOf($root($target));
+            if ($symbol === null) {
+                $traverse($target, $nesting);
+                return;
+            }
+
+            // Index expressions are plain reads: $this->items[$i]
+            for ($node = $target; $node instanceof Node\Expr\ArrayDimFetch; $node = $node->var) {
+                if ($node->dim !== null) $traverse($node->dim, $nesting);
+            }
+            foreach ($flags as $flag) $record($symbol, $flag);
+        };
+
+        $traverse = function(Node $node, int $nesting) use (&$traverse, &$cyclo, &$cog, &$globals, &$globalVars, &$symbolAccess, $symbolOf, $record, $root, $markTarget): void {
             $nodeClass = $node::class;
 
             $cycloClasses = [
@@ -205,46 +264,65 @@ class MethodDefinitionCollector implements Collector
                 $cog += 1;
             }
 
-            if ($node instanceof Node\Expr\Assign || $node instanceof Node\Expr\AssignOp || $node instanceof Node\Expr\AssignRef) {
-                $var = $node->var;
-                if ($var instanceof Node\Expr\PropertyFetch && $var->var instanceof Node\Expr\Variable && is_string($var->var->name) && $var->var->name === 'this' && $var->name instanceof Node\Identifier) {
-                    $propAccess[$var->name->toString()] = 'WRITE';
-                } elseif ($var instanceof Node\Expr\StaticPropertyFetch && $var->class instanceof Node\Name && in_array(strtolower($var->class->toString()), ['self', 'static'], true) && $var->name instanceof Node\VarLikeIdentifier) {
-                    $propAccess[$var->name->toString()] = 'WRITE';
-                }
-
-                if ($node instanceof Node\Expr\Assign || $node instanceof Node\Expr\AssignRef) {
-                    $traverse($node->expr, $nextNesting);
-                }
+            // Writes: plain assignment only writes, compound assignment and ++ -- read and write
+            if ($node instanceof Node\Expr\Assign) {
+                $markTarget($node->var, ['WRITE'], $nextNesting);
+                $traverse($node->expr, $nextNesting);
+                return;
+            }
+            if ($node instanceof Node\Expr\AssignRef) {
+                $markTarget($node->var, ['WRITE'], $nextNesting);
+                $markTarget($node->expr, ['READ', 'WRITE'], $nextNesting);
+                return;
+            }
+            if ($node instanceof Node\Expr\AssignOp) {
+                $markTarget($node->var, ['READ', 'WRITE'], $nextNesting);
+                $traverse($node->expr, $nextNesting);
+                return;
+            }
+            if ($node instanceof Node\Expr\PreInc || $node instanceof Node\Expr\PostInc || $node instanceof Node\Expr\PreDec || $node instanceof Node\Expr\PostDec) {
+                $markTarget($node->var, ['READ', 'WRITE'], $nextNesting);
+                return;
+            }
+            if ($node instanceof Node\Stmt\Unset_) {
+                foreach ($node->vars as $var) $markTarget($var, ['WRITE'], $nextNesting);
                 return;
             }
 
-            if ($node instanceof Node\Expr\PropertyFetch && $node->var instanceof Node\Expr\Variable && is_string($node->var->name) && $node->var->name === 'this' && $node->name instanceof Node\Identifier) {
-                $name = $node->name->toString();
-                if (!isset($propAccess[$name])) $propAccess[$name] = 'READ';
-            } elseif ($node instanceof Node\Expr\StaticPropertyFetch && $node->class instanceof Node\Name && in_array(strtolower($node->class->toString()), ['self', 'static'], true) && $node->name instanceof Node\VarLikeIdentifier) {
-                $name = $node->name->toString();
-                if (!isset($propAccess[$name])) $propAccess[$name] = 'READ';
-            } elseif ($node instanceof Node\Expr\ClassConstFetch && $node->class instanceof Node\Name && in_array(strtolower($node->class->toString()), ['self', 'static'], true) && $node->name instanceof Node\Identifier) {
-                $name = $node->name->toString();
-                if (!isset($propAccess[$name])) $propAccess[$name] = 'READ';
+            // foreach by reference changes the array; the generic traversal below adds the read
+            if ($node instanceof Node\Stmt\Foreach_ && $node->byRef) {
+                $symbol = $symbolOf($root($node->expr));
+                if ($symbol !== null) $record($symbol, 'WRITE');
             }
 
-            if ($node instanceof Node\Expr\Variable && is_string($node->name)) {
-                $superglobals = ['_GET', '_POST', '_SESSION', '_COOKIE', '_SERVER', '_ENV', '_FILES', '_REQUEST', 'GLOBALS'];
-                if (in_array($node->name, $superglobals, true)) {
-                    $globals[] = ['type' => 'SUPERGLOBAL', 'name' => $node->name];
+            // Arguments passed to by-reference parameters of native functions (sort, array_push, preg_match...)
+            if ($node instanceof Node\Expr\FuncCall && $node->name instanceof Node\Name && !$node->isFirstClassCallable()) {
+                $params = $this->nativeFunctionParams($node->name);
+                foreach ($node->getArgs() as $index => $arg) {
+                    if ($arg->unpack || $arg->name !== null) continue;
+                    $param = $params[$index] ?? (($params !== [] && end($params)->isVariadic()) ? end($params) : null);
+                    if ($param === null || !$param->isPassedByReference()) continue;
+                    $symbol = $symbolOf($root($arg->value));
+                    if ($symbol !== null) $record($symbol, 'WRITE');
                 }
-            } elseif ($node instanceof Node\Stmt\Global_) {
+            }
+
+            // Reads
+            $symbol = $symbolOf($node);
+            if ($symbol !== null) $record($symbol, 'READ');
+
+            if ($node instanceof Node\Stmt\Global_) {
                 foreach ($node->vars as $var) {
                     if ($var instanceof Node\Expr\Variable && is_string($var->name)) {
-                        $globals[] = ['type' => 'GLOBAL_KEYWORD', 'name' => $var->name];
+                        $globalVars[$var->name] = true;
+                        // Declared even if the method never uses it
+                        $symbolAccess['global|' . $var->name] ??= [];
                     }
                 }
             } elseif ($node instanceof Node\Expr\ConstFetch) {
                 $name = $node->name->toString();
                 if (!in_array(strtolower($name), ['true', 'false', 'null'], true)) {
-                    $globals[] = ['type' => 'CONSTANT', 'name' => $name];
+                    $globals[] = ['type' => 'CONSTANT', 'name' => $name, 'access' => 'READ'];
                 }
             }
 
@@ -264,13 +342,46 @@ class MethodDefinitionCollector implements Collector
             if ($stmt instanceof Node) $traverse($stmt, 0);
         }
 
-        $uniqueGlobals = array_map('unserialize', array_unique(array_map('serialize', $globals)));
+        $accessOf = fn(array $flags): string => match (true) {
+            isset($flags['READ'], $flags['WRITE']) => 'READ_WRITE',
+            isset($flags['WRITE']) => 'WRITE',
+            default => 'READ',
+        };
 
+        $globalTypes = ['super' => 'SUPERGLOBAL', 'global' => 'GLOBAL_KEYWORD'];
         $finalPropAccess = [];
-        foreach ($propAccess as $prop => $type) {
-            $finalPropAccess[] = ['prop' => $prop, 'type' => $type];
+        foreach ($symbolAccess as $key => $flags) {
+            [$kind, $name] = explode('|', $key, 2);
+            if ($kind === 'prop') {
+                $finalPropAccess[] = ['prop' => $name, 'type' => $accessOf($flags)];
+            } else {
+                $globals[] = ['type' => $globalTypes[$kind], 'name' => $name, 'access' => $accessOf($flags)];
+            }
         }
 
+        $uniqueGlobals = array_map('unserialize', array_unique(array_map('serialize', $globals)));
+
         return [$cyclo, $cog, array_values($uniqueGlobals), $finalPropAccess];
+    }
+
+    /**
+     * Parameters of a native function, to know which arguments are passed by reference.
+     * Empty when the function is not a PHP built-in, or is unknown to the analysing process.
+     *
+     * @return list<\ReflectionParameter>
+     */
+    private function nativeFunctionParams(Node\Name $name): array
+    {
+        $candidates = array_filter([
+            ($name->getAttribute('resolvedName') ?? $name)->toString(),
+            $name->toString(),
+            $name->getLast(),
+        ]);
+        foreach ($candidates as $candidate) {
+            if (!function_exists($candidate)) continue;
+            $reflection = new \ReflectionFunction($candidate);
+            return $reflection->isInternal() ? $reflection->getParameters() : [];
+        }
+        return [];
     }
 }
