@@ -1,5 +1,9 @@
+parametersSchema:
+    anaProjectName: string()
+
 parameters:
     level: 0
+    anaProjectName: Sqler
     paths:
         - C:\vamp\apache\htdocs\Ocallit\Sqler/Src
     bootstrapFiles:
@@ -18,6 +22,9 @@ services:
         class: App\PHPStan\MethodCallCollector
         tags:
             - phpstan.collector
-
-rules:
-    - App\PHPStan\ExportMetricsRule
+    -
+        class: App\PHPStan\ExportMetricsRule
+        arguments:
+            projectName: %anaProjectName%
+        tags:
+            - phpstan.rules.rule

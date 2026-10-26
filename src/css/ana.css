@@ -1,0 +1,162 @@
+:root {
+    --bg-color: #f8f9fa;
+    --panel-bg: #ffffff;
+    --border-color: #dee2e6;
+    --text-main: #212529;
+    --accent: #0d6efd;
+    --accent-hover: #0b5ed7;
+}
+
+/* --- Top menu (partials/nav.php) --- */
+.ana-nav {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 0 20px;
+    background-color: var(--panel-bg);
+    border-bottom: 1px solid var(--border-color);
+    flex-shrink: 0;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+.ana-brand { font-weight: bold; font-size: 1.2rem; color: var(--accent); }
+.ana-project { font-size: 0.9rem; color: #495057; white-space: nowrap; }
+.ana-menu { display: flex; list-style: none; margin: 0 0 0 auto; padding: 0; gap: 4px; flex-wrap: wrap; }
+.ana-menu a {
+    display: block;
+    padding: 12px 14px;
+    text-decoration: none;
+    color: var(--text-main);
+    font-weight: 500;
+    border-bottom: 3px solid transparent;
+}
+.ana-menu a:hover { color: var(--accent); }
+.ana-menu a.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* --- Tabulator pages --- */
+body.ana-table-page {
+    margin: 0;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-main);
+}
+.ana-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 20px;
+    background: var(--panel-bg);
+    border-bottom: 1px solid var(--border-color);
+    flex-shrink: 0;
+}
+.ana-toolbar h1 { margin: 0; font-size: 1.1rem; }
+.ana-toolbar .ana-status { margin-left: auto; font-size: 0.9rem; color: #495057; }
+.ana-toolbar button, .ana-toolbar summary {
+    padding: 6px 14px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background: var(--panel-bg);
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+.ana-toolbar button:hover, .ana-toolbar summary:hover { background: var(--bg-color); }
+.ana-columns { position: relative; }
+.ana-columns-list {
+    position: absolute;
+    z-index: 100;
+    top: 100%;
+    left: 0;
+    max-height: 60vh;
+    overflow-y: auto;
+    min-width: 260px;
+    padding: 8px 12px;
+    background: var(--panel-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+.ana-columns-list label { display: block; padding: 2px 0; font-size: 0.9rem; cursor: pointer; }
+.ana-filter-hint { padding: 6px 20px; font-size: 0.8rem; color: #6c757d; flex-shrink: 0; }
+.ana-table-wrap { height: calc(100vh - 250px); min-height: 420px; padding: 0 20px 20px; }
+.ana-table-wrap .tabulator { height: 100%; }
+
+/* --- Index page --- */
+body.ana-index-page {
+    margin: 0;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-main);
+}
+.ana-index { max-width: 1100px; margin: 0 auto; padding: 24px 20px; }
+.ana-index h1 { margin: 0 0 4px; font-size: 1.6rem; }
+.ana-index .ana-subtitle { margin: 0 0 24px; color: #6c757d; font-size: 0.9rem; }
+.ana-stats, .ana-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 14px; margin-bottom: 28px; }
+.ana-cards { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+.ana-stat, .ana-card {
+    background: var(--panel-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 14px 16px;
+}
+.ana-stat .value { font-size: 1.6rem; font-weight: bold; }
+.ana-stat .label { font-size: 0.85rem; color: #6c757d; }
+.ana-card { text-decoration: none; color: var(--text-main); }
+.ana-card:hover { border-color: var(--accent); }
+.ana-card h2 { margin: 0 0 6px; font-size: 1.05rem; color: var(--accent); }
+.ana-card p { margin: 0; font-size: 0.9rem; color: #495057; }
+.ana-index .ana-error { color: #dc3545; }
+
+/* --- Presets --- */
+.ana-presets { display: flex; flex-wrap: wrap; gap: 8px; padding: 8px 20px; background: var(--panel-bg); border-bottom: 1px solid var(--border-color); flex-shrink: 0; }
+.ana-presets button { padding: 5px 12px; border: 1px solid var(--accent); border-radius: 14px; background: var(--panel-bg); color: var(--accent); cursor: pointer; font-size: 0.85rem; }
+.ana-presets button:hover { background: var(--bg-color); }
+.ana-presets button.active { background: var(--accent); color: #fff; }
+.ana-preset-note { padding: 4px 20px 0; font-size: 0.85rem; color: #495057; flex-shrink: 0; min-height: 1.2em; }
+
+/* --- Layout dialog --- */
+.ana-dialog { width: min(760px, 92vw); max-height: 88vh; padding: 18px 22px; border: 1px solid var(--border-color); border-radius: 8px; font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+.ana-dialog::backdrop { background: rgba(0, 0, 0, 0.35); }
+.ana-dialog h2 { margin: 0 0 10px; font-size: 1.2rem; }
+.ana-dialog fieldset { margin: 0 0 12px; border: 1px solid var(--border-color); border-radius: 4px; }
+.ana-dialog legend { font-weight: 600; font-size: 0.9rem; }
+.ana-dialog-columns { display: grid; grid-template-columns: repeat(2, 1fr); gap: 2px 16px; max-height: 38vh; overflow-y: auto; margin-top: 8px; }
+.ana-dialog-columns label { font-size: 0.85rem; cursor: pointer; }
+.ana-dialog-sorts div { display: flex; gap: 8px; margin: 6px 0; }
+.ana-dialog-sorts select { padding: 4px 6px; }
+.ana-dialog-sorts select:first-child { flex: 1; }
+.ana-dialog-row { display: flex; gap: 8px; align-items: center; }
+.ana-dialog-row .ana-spacer { flex: 1; }
+.ana-dialog button { padding: 6px 14px; border: 1px solid var(--border-color); border-radius: 4px; background: var(--panel-bg); cursor: pointer; font-size: 0.9rem; }
+.ana-dialog button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.ana-dialog-note { margin: 4px 0 12px; font-size: 0.8rem; color: #6c757d; }
+
+/* --- Detail page --- */
+.ana-detail { max-width: 1300px; margin: 0 auto; padding: 20px; }
+.ana-detail h1 { margin: 0 0 4px; font-size: 1.4rem; word-break: break-all; }
+.ana-detail h2 { margin: 24px 0 8px; font-size: 1.05rem; }
+.ana-detail .ana-subtitle { margin: 0 0 16px; color: #6c757d; font-size: 0.9rem; }
+.ana-detail .ana-links a { margin-right: 14px; }
+.ana-detail table { border-collapse: collapse; width: 100%; background: var(--panel-bg); border: 1px solid var(--border-color); font-size: 0.9rem; }
+.ana-detail th, .ana-detail td { text-align: left; padding: 5px 10px; border-bottom: 1px solid var(--border-color); }
+.ana-detail th { background: var(--bg-color); }
+.ana-detail td.num, .ana-detail th.num { text-align: right; }
+.ana-detail pre { background: var(--panel-bg); border: 1px solid var(--border-color); padding: 10px; overflow-x: auto; font-size: 0.85rem; }
+.ana-detail .ana-empty { color: #6c757d; font-size: 0.9rem; }
+.ana-badge { display: inline-block; padding: 2px 8px; margin-right: 6px; border-radius: 10px; background: #dc3545; color: #fff; font-size: 0.8rem; }
+.ana-badge.info { background: #0d6efd; }
+
+/* --- Find column, preset None, column guide --- */
+.ana-toolbar input[type=search] { padding: 6px 10px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 0.9rem; width: 170px; }
+.tabulator .tabulator-col.ana-col-found, .tabulator .tabulator-col.ana-col-found .tabulator-col-content { background: #fff3a3; }
+.ana-presets button.ana-preset-none { border-color: #6c757d; color: #6c757d; }
+.ana-dialog label.ana-col-found { background: #fff3a3; }
+.ana-dialog-find { flex: 1; padding: 5px 8px; border: 1px solid var(--border-color); border-radius: 4px; }
+.ana-dialog .ana-name { padding: 5px 8px; border: 1px solid var(--border-color); border-radius: 4px; width: 170px; }
+.ana-dialog-default { display: block; margin-top: 4px; font-size: 0.9rem; }
+.ana-guide { max-width: 1300px; margin: 0 auto; padding: 0 20px 40px; }
+.ana-guide h2 { font-size: 1.1rem; margin: 10px 0; }
+.ana-guide h3 { font-size: 1rem; margin: 18px 0 4px; padding-bottom: 4px; border-bottom: 2px solid var(--accent); }
+.ana-guide dl { display: grid; grid-template-columns: minmax(150px, 220px) 1fr; gap: 4px 16px; margin: 6px 0; }
+.ana-guide dt { font-weight: 600; font-size: 0.9rem; }
+.ana-guide dd { margin: 0; font-size: 0.9rem; color: #495057; }
+
+.ana-dialog-error { margin: 0 0 8px; color: #dc3545; font-size: 0.85rem; min-height: 1.1em; }

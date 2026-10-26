@@ -11,7 +11,7 @@ use PHPStan\Node\InClassNode;
 
 
 /**
- * @implements Collector<InClassNode, array{class: string, is_interface: int, is_trait: int, abstract: int, final: int, readonly: int, static: int, extends: string|null, implements: list<string>, traits: list<string>, properties: list<array{name: string, visibility: string, is_static: int, is_readonly: int, is_constant: int, type_hint: string|null}>}>
+ * @implements Collector<InClassNode, array{class: string, is_interface: int, is_trait: int, abstract: int, final: int, readonly: int, static: int, extends: string|null, implements: list<string>, traits: list<string>, properties: list<array{name: string, visibility: string, is_static: int, is_readonly: int, is_constant: int, type_hint: string|null, doc_comment: string|null}>, doc_comment: string|null}>
  */
 class ClassDefinitionCollector implements Collector
 {
@@ -61,7 +61,8 @@ class ClassDefinitionCollector implements Collector
                       'is_static' => $isStatic,
                       'is_readonly' => $isReadonly,
                       'is_constant' => 0,
-                      'type_hint' => $typeStr
+                      'type_hint' => $typeStr,
+                      'doc_comment' => $stmt->getDocComment()?->getText()
                     ];
                 }
             } elseif ($stmt instanceof Node\Stmt\ClassConst) {
@@ -73,7 +74,8 @@ class ClassDefinitionCollector implements Collector
                       'is_static' => 1,
                       'is_readonly' => 1,
                       'is_constant' => 1,
-                      'type_hint' => null
+                      'type_hint' => null,
+                      'doc_comment' => $stmt->getDocComment()?->getText()
                     ];
                 }
             }
@@ -107,6 +109,7 @@ class ClassDefinitionCollector implements Collector
           'implements' => $implements,
           'traits' => $traits,
           'properties' => $properties,
+          'doc_comment' => $origNode->getDocComment()?->getText(),
         ];
     }
 }
