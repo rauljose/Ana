@@ -17,4 +17,4 @@ try {
     die("Schema failed!: " . $e->getMessage() . "\n");
 }
 
-echo "Database $dbName ready\n";
+echo "Database Ana ready\n";

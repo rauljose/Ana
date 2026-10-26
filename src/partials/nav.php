@@ -5,9 +5,9 @@ require_once __DIR__ . '/../config/config.php';
 // Single source of truth for the pages: the top menu and the index page both read this list
 $anaPages = [
     'index.php' => ['Home', 'Project overview and links to every page'],
+    'namespace_metrics.php' => ['Namespace Metrics', 'Metrics rolled up per namespace: size, complexity, coupling, cycles'],
     'class_metrics.php' => ['Class Metrics', 'Every recovered class metric in one sortable, filterable table'],
     'method_metrics.php' => ['Method Metrics', 'Every recovered method and function metric in one sortable, filterable table'],
-    'namespace_metrics.php' => ['Namespace Metrics', 'Metrics rolled up per namespace: size, complexity, coupling, cycles'],
     'method_globals.php' => ['Method Globals', 'For each method or function: the constants, superglobals and global variables it uses, native or not, and read or write'],
     'global_report.php' => ['Globals Report', 'Superglobals, global variables, constants, properties and static properties, and the methods that use them'],
     'class_graph.php' => ['Class Graphs', 'Zone of Pain scatter plot and class health radar'],
