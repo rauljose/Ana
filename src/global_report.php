@@ -81,6 +81,7 @@
                 title: 'Global', columns: [
                     anaCol.list('Type', 'symbol_type', 'Superglobal variable ($_GET...), Global variable (global keyword), Constant, Property, Static property, Class constant, or Inherited member (declared in a parent class or trait). Static properties and globals are shared state: the riskiest kinds.'),
                     anaCol.flag('Native', 'is_native', 'Defined by PHP itself: superglobals and built-in constants. Native globals are expected; project ones are the dependencies to question.'),
+                    anaCol.flag('Own class', 'is_own_class', 'The symbol is declared by the same class that uses it (its own property, static property or class constant). Untick to see only what crosses a class boundary: global variables, superglobals, project constants and inherited members. Always false for globals, which belong to no class.'),
                     anaCol.text('FQN', 'symbol_fqn', 'Fully qualified name: Class::$property, Class::CONSTANT, or the global name.'),
                     anaCol.list('Access', 'access', 'Read, Write or Read/Write (for example ++, .=, array_push). Assigning to an element, as in $this->items[] = $x, is a Write of the property. Constants are always Read.'),
                 ]

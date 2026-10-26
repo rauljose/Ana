@@ -60,6 +60,7 @@ while ($row = $res->fetch_assoc()) {
     $report[] = [
         'symbol_type' => $symbolType,
         'is_native' => $isNative,
+        'is_own_class' => false,
         'symbol' => $symbol,
         'symbol_fqn' => $symbol,
         'access' => accessLabel($row['access']),
@@ -99,6 +100,7 @@ while ($row = $res->fetch_assoc()) {
     $report[] = [
         'symbol_type' => $symbolType,
         'is_native' => false,
+        'is_own_class' => $row['declared_id'] !== null,
         'symbol' => $symbol,
         'symbol_fqn' => $symbolFqn,
         'access' => accessLabel($row['access_type']),
