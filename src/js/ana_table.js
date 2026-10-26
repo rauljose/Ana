@@ -63,7 +63,9 @@ const anaCol = {
     }),
     list: (title, field, tip, extra = {}) => ({
         title, field, headerTooltip: tip,
-        headerFilter: 'list', headerFilterFunc: '=', headerFilterParams: { valuesLookup: true, clearable: true },
+        headerFilter: 'list', headerFilterFunc: '=',
+        // autocomplete + allowEmpty: emptying the box (clear X or deleting the text) shows every row again
+        headerFilterParams: { valuesLookup: true, autocomplete: true, allowEmpty: true, listOnEmpty: true, clearable: true },
         ...extra
     })
 };

@@ -79,6 +79,7 @@
                     anaCol.text('Global', 'symbol', 'Name of the constant or variable as written in code ($_GET, $db, APP_ROOT).'),
                     anaCol.list('Type', 'symbol_type', 'Constant, Superglobal variable ($_GET, $_POST, $_SESSION...) or Global variable (declared with the global keyword). All three are hidden inputs: the method result depends on something its caller did not pass in.'),
                     anaCol.flag('Native', 'is_native', 'Defined by PHP itself. Native globals are expected; the non native ones are project configuration and shared state: the dependencies to question.'),
+                    anaCol.flag('Own class', 'is_own_class', 'The symbol is declared by the same class that uses it (its own property, static property or class constant). Untick to see only what crosses a class boundary: global variables, superglobals, project constants and inherited members. Always false for globals, which belong to no class.'),
                     anaCol.list('Access', 'access', 'Read, Write or Read/Write (for example .=, ++, array_push). Writing a global changes state for every other method that uses it, the riskiest case. Constants are always Read.'),
                 ]
             },
