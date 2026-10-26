@@ -104,3 +104,12 @@ CREATE TABLE IF NOT EXISTS user_layouts (
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     UNIQUE KEY idx_page_name (page, name)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- Per page settings (thresholds, pickers). Same as user_layouts: no DROP, not part of a project's analysis
+CREATE TABLE IF NOT EXISTS user_settings (
+    page VARCHAR(64) NOT NULL,
+    name VARCHAR(64) NOT NULL,
+    value VARCHAR(255) NOT NULL,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (page, name)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;

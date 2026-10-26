@@ -5,6 +5,7 @@ require_once __DIR__ . '/../config/config.php';
 // Single source of truth for the pages: the top menu and the index page both read this list
 $anaPages = [
     'index.php' => ['Home', 'Project overview and links to every page'],
+    'review.php' => ['Review', 'Short list of the important things to look at: shared globals, hard to change methods, most used methods and namespaces'],
     'namespace_metrics.php' => ['Namespace Metrics', 'Metrics rolled up per namespace: size, complexity, coupling, cycles'],
     'class_metrics.php' => ['Class Metrics', 'Every recovered class metric in one sortable, filterable table'],
     'method_metrics.php' => ['Method Metrics', 'Every recovered method and function metric in one sortable, filterable table'],
