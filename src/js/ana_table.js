@@ -63,31 +63,12 @@ const anaCol = {
     }),
     list: (title, field, tip, extra = {}) => ({
         title, field, headerTooltip: tip,
-        headerFilter: anaListFilter, headerFilterFunc: '=',
+        headerFilter: 'list', headerFilterFunc: '=',
+        // autocomplete + allowEmpty: emptying the box (clear X or deleting the text) shows every row again
+        headerFilterParams: { valuesLookup: true, autocomplete: true, allowEmpty: true, listOnEmpty: true, clearable: true },
         ...extra
     })
 };
-
-// Header filter for list columns: a select whose first (blank) option shows every row again
-function anaListFilter(cell, onRendered, success) {
-    const select = document.createElement('select');
-    select.style.width = '100%';
-
-    const fillOptions = () => {
-        const selected = select.value;
-        const values = [...new Set(cell.getTable().getData().map(row => row[cell.getField()]))]
-            .filter(value => value !== null && value !== undefined && value !== '')
-            .sort();
-        select.replaceChildren(new Option('', ''), ...values.map(value => new Option(String(value), String(value))));
-        select.value = selected;
-    };
-
-    fillOptions();
-    select.addEventListener('focus', fillOptions);
-    select.addEventListener('mousedown', fillOptions);
-    select.addEventListener('change', () => success(select.value));
-    return select;
-}
 
 // Wires the toolbar: row counter, clear filters, CSV export and the show/hide columns menu
 function anaInitToolbar(table, csvName) {
