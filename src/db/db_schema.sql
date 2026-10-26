@@ -92,3 +92,15 @@ CREATE TABLE IF NOT EXISTS method_property_access (
     access_type ENUM('READ', 'WRITE', 'READ_WRITE') NOT NULL,
     UNIQUE KEY idx_method_prop_access (class_name, method_name, property_name, access_type)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- User settings live apart from the analysis data: no DROP, so re-running this file keeps the layouts
+CREATE TABLE IF NOT EXISTS user_layouts (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    page VARCHAR(64) NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    hidden_columns JSON NOT NULL,
+    sort_rules JSON NOT NULL,
+    is_default TINYINT(1) NOT NULL DEFAULT 0,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY idx_page_name (page, name)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;

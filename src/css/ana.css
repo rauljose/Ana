@@ -158,3 +158,5 @@ body.ana-index-page {
 .ana-guide dl { display: grid; grid-template-columns: minmax(150px, 220px) 1fr; gap: 4px 16px; margin: 6px 0; }
 .ana-guide dt { font-weight: 600; font-size: 0.9rem; }
 .ana-guide dd { margin: 0; font-size: 0.9rem; color: #495057; }
+
+.ana-dialog-error { margin: 0 0 8px; color: #dc3545; font-size: 0.85rem; min-height: 1.1em; }

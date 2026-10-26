@@ -204,11 +204,10 @@ function anaInitFind(table) {
 }
 
 // Layout dialog: choose the visible columns and the row sort order, give the layout a name and save it.
-// Layouts are saved in localStorage, which belongs to the site and not to a project, so they apply to
-// every project. The layout marked as default is applied when the page opens.
+// Layouts are saved in the database (api/layouts.php, table user_layouts), which is not part of a project's
+// analysis, so they apply to every project. The layout marked as default is applied when the page opens.
 // defaultSort: the table's initialSort, [{ column, dir }]
 function anaInitLayout(table, storageKey, defaultSort) {
-    const key = 'ana.layouts.' + storageKey;
     const sortLevels = 3;
     let dialog = null;
 
@@ -220,19 +219,36 @@ function anaInitLayout(table, storageKey, defaultSort) {
     };
 
     // store = { default: name | null, layouts: { name: { hidden: [field], sort: [{ field, dir }] } } }
-    const readStore = () => {
-        try {
-            const store = JSON.parse(localStorage.getItem(key));
-            if (store && store.layouts) return store;
+    let store = { default: null, layouts: {} };
 
-            // Layout saved before layouts had names
-            const legacy = JSON.parse(localStorage.getItem('ana.layout.' + storageKey));
-            if (legacy) return { default: 'Saved layout', layouts: { 'Saved layout': legacy } };
-        } catch (e) { /* storage blocked or corrupt: start empty */ }
-        return { default: null, layouts: {} };
+    // Every request answers with the page's layouts
+    const callLayouts = async (payload) => {
+        const options = payload === undefined ? {} : {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ page: storageKey, ...payload })
+        };
+        const response = await fetch('api/layouts.php' + (payload === undefined ? '?page=' + encodeURIComponent(storageKey) : ''), options);
+        const answer = await response.json();
+        if (!response.ok) throw new Error(answer.error || 'Request failed');
+        store = answer;
     };
-    const writeStore = (store) => {
-        try { localStorage.setItem(key, JSON.stringify(store)); } catch (e) { /* the layout still applies to this visit */ }
+
+    // Layouts an earlier version kept in the browser's local storage move to the database once
+    const importLocalLayouts = async () => {
+        try {
+            const local = JSON.parse(localStorage.getItem('ana.layouts.' + storageKey));
+            const legacy = JSON.parse(localStorage.getItem('ana.layout.' + storageKey));
+            const layouts = local && local.layouts ? local.layouts : (legacy ? { 'Saved layout': legacy } : {});
+            if (Object.keys(layouts).length === 0) return;
+            await callLayouts({ action: 'import', layouts, default: local && local.layouts ? local.default : (legacy ? 'Saved layout' : null) });
+            localStorage.removeItem('ana.layouts.' + storageKey);
+            localStorage.removeItem('ana.layout.' + storageKey);
+        } catch (e) { /* nothing to import, or storage blocked */ }
+    };
+
+    const showError = (error) => {
+        dialog.querySelector('.ana-dialog-error').textContent = error ? error.message : '';
     };
 
     // Columns not listed as hidden are shown, so columns added later appear in layouts saved earlier
@@ -274,7 +290,8 @@ function anaInitLayout(table, storageKey, defaultSort) {
                 <div class="ana-dialog-sorts"></div>
             </fieldset>
             <label class="ana-dialog-default"><input type="checkbox" class="ana-default"> Open this page with this layout</label>
-            <p class="ana-dialog-note">Layouts are kept in this browser and apply to every project.</p>
+            <p class="ana-dialog-note">Layouts are saved in the database and apply to every project.</p>
+            <p class="ana-dialog-error"></p>
             <div class="ana-dialog-row ana-dialog-buttons">
                 <button type="button" data-action="reset">Reset to built-in</button>
                 <span class="ana-spacer"></span>
@@ -318,7 +335,6 @@ function anaInitLayout(table, storageKey, defaultSort) {
         });
 
         dialog.querySelector('.ana-saved').addEventListener('change', (event) => {
-            const store = readStore();
             const name = event.target.value;
             if (name === '' || !store.layouts[name]) return;
             fillForm(store.layouts[name]);
@@ -338,11 +354,11 @@ function anaInitLayout(table, storageKey, defaultSort) {
             } else if (action === 'delete') {
                 deleteSelected();
             } else if (action === 'reset') {
-                const store = readStore();
-                store.default = null;
-                writeStore(store);
-                apply(builtInLayout);
-                dialog.close();
+                run(async () => {
+                    await callLayouts({ action: 'clear_default' });
+                    apply(builtInLayout);
+                    dialog.close();
+                });
             } else if (action === 'cancel') {
                 dialog.close();
             } else if (action === 'apply') {
@@ -373,8 +389,13 @@ function anaInitLayout(table, storageKey, defaultSort) {
         });
     };
 
+    // Runs a save, delete or reset, showing the error in the dialog when the database call fails
+    const run = async (operation) => {
+        showError(null);
+        try { await operation(); } catch (error) { showError(error); }
+    };
+
     const refreshSaved = (selectedName) => {
-        const store = readStore();
         const select = dialog.querySelector('.ana-saved');
         select.innerHTML = '';
         select.add(new Option('(none)', ''));
@@ -384,33 +405,27 @@ function anaInitLayout(table, storageKey, defaultSort) {
         select.value = selectedName || '';
     };
 
-    const saveForm = () => {
-        const nameInput = dialog.querySelector('.ana-name');
-        const name = nameInput.value.trim() || 'My layout';
-        const store = readStore();
+    const saveForm = () => run(async () => {
+        const name = dialog.querySelector('.ana-name').value.trim() || 'My layout';
         const layout = readForm();
-        store.layouts[name] = layout;
-        if (dialog.querySelector('.ana-default').checked) store.default = name;
-        else if (store.default === name) store.default = null;
-        writeStore(store);
+        await callLayouts({ action: 'save', name, layout, is_default: dialog.querySelector('.ana-default').checked });
         apply(layout);
         dialog.close();
-    };
+    });
 
-    const deleteSelected = () => {
+    const deleteSelected = () => run(async () => {
         const name = dialog.querySelector('.ana-saved').value;
         if (name === '') return;
-        const store = readStore();
-        delete store.layouts[name];
-        if (store.default === name) store.default = null;
-        writeStore(store);
+        await callLayouts({ action: 'delete', name });
         dialog.querySelector('.ana-name').value = '';
         dialog.querySelector('.ana-default').checked = false;
         refreshSaved('');
-    };
+    });
 
-    document.getElementById('anaLayout').addEventListener('click', () => {
+    document.getElementById('anaLayout').addEventListener('click', async () => {
         if (dialog === null) build();
+        showError(null);
+        try { await callLayouts(); } catch (error) { showError(error); }
         fillForm(currentLayout());
         dialog.querySelector('.ana-name').value = '';
         dialog.querySelector('.ana-default').checked = false;
@@ -420,8 +435,13 @@ function anaInitLayout(table, storageKey, defaultSort) {
         dialog.showModal();
     });
 
-    table.on('tableBuilt', () => {
-        const store = readStore();
+    table.on('tableBuilt', async () => {
+        try {
+            await callLayouts();
+            if (Object.keys(store.layouts).length === 0) {
+                await importLocalLayouts();
+            }
+        } catch (e) { return; /* database unavailable: the built-in layout stays */ }
         if (store.default && store.layouts[store.default]) apply(store.layouts[store.default]);
     });
 }
