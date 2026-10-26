@@ -23,32 +23,37 @@
     <div class="ana-summary" id="reviewSummary"></div>
 
     <section id="sharedVariables">
-        <h2>Global variables written and shared across namespaces</h2>
-        <p class="ana-why">Variables declared with <code>global</code> that at least one method writes, used from several namespaces: shared mutable state that no namespace owns. Native superglobals are left out.</p>
+        <h2>Global variables and superglobals written to</h2>
+        <p class="ana-why">Variables declared with <code>global</code> that a method writes and a method of another namespace also uses: shared mutable state that no namespace owns. Every written superglobal ($_SESSION, $_POST...) is listed, whatever the namespace.</p>
+        <div class="ana-thresholds" id="sharedVariablesInputs"></div>
         <div id="sharedVariablesTable"></div>
     </section>
 
     <section id="sharedConstants">
-        <h2>Project constants used across namespaces</h2>
-        <p class="ana-why">Constants PHP does not define itself, used from several namespaces: configuration the whole project depends on. Where a constant is defined is not stored, so check that its definition is in analyzed code.</p>
+        <h2>Project constants used outside their namespace</h2>
+        <p class="ana-why">Constants PHP does not define itself, used from more than one namespace: configuration the whole project depends on. Where a constant is defined is not stored, so check that its definition is in analyzed code.</p>
+        <div class="ana-thresholds" id="sharedConstantsInputs"></div>
         <div id="sharedConstantsTable"></div>
     </section>
 
     <section id="hardMethods">
         <h2>Hard to change methods</h2>
-        <p class="ana-why">Cyclomatic complexity, cognitive complexity, or cyclomatic x calls in (the hotspot score) at or above the thresholds. The Why column says which one tripped.</p>
+        <p class="ana-why">Cyclomatic complexity, cognitive complexity, or the hotspot score (cyclomatic complexity x calls in) at or above the thresholds. The Why column says which one tripped.</p>
+        <div class="ana-thresholds" id="hardMethodsInputs"></div>
         <div id="hardMethodsTable"></div>
     </section>
 
     <section id="usedMethods">
         <h2>Most used methods</h2>
         <p class="ana-why">Methods called at least the minimum number of times, optionally in one namespace: the contract the rest of the code depends on, so changes there cost the most.</p>
+        <div class="ana-thresholds" id="usedMethodsInputs"></div>
         <div id="usedMethodsTable"></div>
     </section>
 
     <section id="usedNamespaces">
         <h2>Namespaces by use</h2>
         <p class="ana-why">Project namespaces sorted by how many other namespaces use them, then by calls in. The top ones are the foundation.</p>
+        <div class="ana-thresholds" id="usedNamespacesInputs"></div>
         <div id="usedNamespacesTable"></div>
     </section>
 </div>
@@ -56,11 +61,10 @@
 <script>
     // SSOT for the inputs: name (saved in user_settings), label, default and minimum
     const reviewSettings = [
-        { name: 'min_namespaces', label: 'Shared by at least (namespaces)', default: 2, min: 2 },
-        { name: 'max_cyclo', label: 'Cyclomatic complexity from', default: 15, min: 1 },
-        { name: 'max_cognitive', label: 'Cognitive complexity from', default: 15, min: 1 },
-        { name: 'max_hotspot', label: 'Cyclomatic x calls in from', default: 150, min: 1 },
-        { name: 'min_calls_in', label: 'Calls in from', default: 10, min: 1 },
+        { name: 'max_cyclo', label: 'Cyclomatic complexity from', tip: 'McCabe cyclomatic complexity: independent paths through the method', default: 15, min: 1 },
+        { name: 'max_cognitive', label: 'Cognitive complexity from', tip: 'How hard the method is to read; nesting costs extra', default: 15, min: 1 },
+        { name: 'max_hotspot', label: 'Hotspot score from', tip: 'Hotspot score = Cyclomatic complexity x Calls in (fan-in)', default: 150, min: 1 },
+        { name: 'min_calls_in', label: 'Calls in (fan-in) from', tip: 'Calls to the method found in the project', default: 10, min: 1 },
     ];
     const namespaceSetting = 'used_namespace';
 
@@ -71,19 +75,20 @@
     // Deciders: pure functions from the loaded data and the thresholds to the rows of a list
     const numberOf = (value) => parseInt(value) || 0;
 
-    function sharedSymbols(globals, isWanted, minNamespaces, mustBeWritten) {
+    function sharedSymbols(globals, isWanted, isListed) {
         const bySymbol = new Map();
         globals.filter(isWanted).forEach(row => {
-            const symbol = bySymbol.get(row.symbol_fqn) ?? { symbol: row.symbol_fqn, namespaces: new Set(), users: new Set(), writers: new Set() };
+            const symbol = bySymbol.get(row.symbol_fqn) ?? { symbol: row.symbol_fqn, symbol_type: row.symbol_type, namespaces: new Set(), users: new Set(), writers: new Set() };
             symbol.namespaces.add(row.namespace);
             symbol.users.add(row.method_fqn);
             if (row.access !== 'Read') symbol.writers.add(row.method_fqn);
             bySymbol.set(row.symbol_fqn, symbol);
         });
         return [...bySymbol.values()]
-            .filter(symbol => symbol.namespaces.size >= minNamespaces && (!mustBeWritten || symbol.writers.size > 0))
+            .filter(isListed)
             .map(symbol => ({
                 symbol: symbol.symbol,
+                symbol_type: symbol.symbol_type,
                 namespace_count: symbol.namespaces.size,
                 namespace_list: [...symbol.namespaces].sort().join(', '),
                 user_count: symbol.users.size,
@@ -124,11 +129,16 @@
     // Lists: id of the section, columns, and the rows now
     const listDefinitions = [
         {
-            id: 'sharedVariables', label: 'Shared global variables', sort: [{ column: 'namespace_count', dir: 'desc' }],
-            rows: (limits) => sharedSymbols(data.globals, row => row.symbol_type === 'Global variable', limits.min_namespaces, true),
+            id: 'sharedVariables', label: 'Variables written to', sort: [{ column: 'writer_count', dir: 'desc' }], inputs: [],
+            rows: () => sharedSymbols(
+                data.globals,
+                row => row.symbol_type === 'Global variable' || row.symbol_type === 'Superglobal variable',
+                symbol => symbol.writers.size > 0 && (symbol.symbol_type === 'Superglobal variable' || symbol.namespaces.size > 1)
+            ),
             columns: [
                 anaCol.rowNumber(),
-                anaCol.text('Variable', 'symbol', 'Name of the variable declared with the global keyword.'),
+                anaCol.text('Variable', 'symbol', 'Name of the variable.'),
+                anaCol.list('Type', 'symbol_type', 'Global variable (global keyword) or Superglobal variable ($_GET, $_SESSION...).'),
                 anaCol.num('Namespaces', 'namespace_count', 'Different namespaces with a method using the variable.'),
                 anaCol.num('Methods', 'user_count', 'Methods and functions using the variable.'),
                 anaCol.num('Writers', 'writer_count', 'Methods and functions that write the variable.'),
@@ -137,8 +147,8 @@
             ],
         },
         {
-            id: 'sharedConstants', label: 'Shared project constants', sort: [{ column: 'namespace_count', dir: 'desc' }],
-            rows: (limits) => sharedSymbols(data.globals, row => row.symbol_type === 'Constant' && !row.is_native, limits.min_namespaces, false),
+            id: 'sharedConstants', label: 'Constants used outside their namespace', sort: [{ column: 'namespace_count', dir: 'desc' }], inputs: [],
+            rows: () => sharedSymbols(data.globals, row => row.symbol_type === 'Constant' && !row.is_native, symbol => symbol.namespaces.size > 1),
             columns: [
                 anaCol.rowNumber(),
                 anaCol.text('Constant', 'symbol', 'Name of the constant as written in code.'),
@@ -148,7 +158,7 @@
             ],
         },
         {
-            id: 'hardMethods', label: 'Hard to change methods', sort: [{ column: 'hotspot_score', dir: 'desc' }],
+            id: 'hardMethods', label: 'Hard to change methods', sort: [{ column: 'hotspot_score', dir: 'desc' }], inputs: ['max_cyclo', 'max_cognitive', 'max_hotspot'],
             rows: (limits) => hardMethods(data.methods, limits),
             columns: [
                 anaCol.rowNumber(),
@@ -156,12 +166,12 @@
                 anaCol.text('Why', 'why', 'The thresholds this method is at or above.'),
                 anaCol.num('Cyclomatic', 'cyclo_complexity', 'Number of independent paths through the method, the minimum number of tests.'),
                 anaCol.num('Cognitive', 'cognitive_complexity', 'How hard the method is to read; nesting costs extra.'),
-                anaCol.num('Calls in', 'calls_in_total', 'Calls to this method found in the project.'),
-                anaCol.num('Hotspot score', 'hotspot_score', 'Cyclomatic x Calls in. Complex methods that many methods call are the riskiest to change.'),
+                anaCol.num('Calls in (fan-in)', 'calls_in_total', 'Calls to this method found in the project.'),
+                anaCol.num('Hotspot score', 'hotspot_score', 'Hotspot score = Cyclomatic complexity x Calls in (fan-in). Complex methods that many methods call are the riskiest to change.'),
             ],
         },
         {
-            id: 'usedMethods', label: 'Most used methods', sort: [{ column: 'calls_in_total', dir: 'desc' }],
+            id: 'usedMethods', label: 'Most used methods', sort: [{ column: 'calls_in_total', dir: 'desc' }], inputs: ['min_calls_in'], hasNamespacePicker: true,
             rows: (limits) => usedMethods(data.methods, limits, namespacePicker.value),
             columns: [
                 anaCol.rowNumber(),
@@ -172,7 +182,7 @@
             ],
         },
         {
-            id: 'usedNamespaces', label: 'Namespaces used', sort: [{ column: 'afferent_ca', dir: 'desc' }, { column: 'calls_in', dir: 'desc' }],
+            id: 'usedNamespaces', label: 'Namespaces used', sort: [{ column: 'afferent_ca', dir: 'desc' }, { column: 'calls_in', dir: 'desc' }], inputs: [],
             rows: () => data.namespaces,
             columns: [
                 anaCol.rowNumber(),
@@ -187,25 +197,33 @@
 
     const namespacePicker = document.createElement('select');
 
+    // Each input sits on top of the list it filters
     function buildInputs() {
-        const container = document.getElementById('reviewInputs');
-        const reset = document.getElementById('reviewReset');
-        reviewSettings.forEach(setting => {
+        const makeLabel = (text, control, tip) => {
             const label = document.createElement('label');
-            const input = document.createElement('input');
-            input.type = 'number';
-            input.min = setting.min;
-            input.value = setting.default;
-            input.addEventListener('input', changed);
-            inputs[setting.name] = input;
-            label.append(setting.label, input);
-            container.insertBefore(label, reset);
+            label.title = tip ?? '';
+            label.append(text, control);
+            return label;
+        };
+        listDefinitions.forEach(definition => {
+            const holder = document.getElementById(definition.id + 'Inputs');
+            definition.inputs.forEach(name => {
+                const setting = reviewSettings.find(candidate => candidate.name === name);
+                const input = document.createElement('input');
+                input.type = 'number';
+                input.min = setting.min;
+                input.value = setting.default;
+                input.addEventListener('input', changed);
+                inputs[name] = input;
+                holder.appendChild(makeLabel(setting.label, input, setting.tip));
+            });
+            if (definition.hasNamespacePicker) {
+                namespacePicker.addEventListener('change', changed);
+                holder.appendChild(makeLabel('Namespace', namespacePicker));
+            }
+            if (holder.children.length === 0) holder.remove();
         });
-        const label = document.createElement('label');
-        namespacePicker.addEventListener('change', changed);
-        label.append('Most used: namespace', namespacePicker);
-        container.insertBefore(label, reset);
-        reset.addEventListener('click', () => {
+        document.getElementById('reviewReset').addEventListener('click', () => {
             reviewSettings.forEach(setting => { inputs[setting.name].value = setting.default; });
             namespacePicker.value = '';
             changed();
