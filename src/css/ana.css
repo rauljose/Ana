@@ -172,10 +172,10 @@ body.ana-index-page, body.ana-review-page {
 .ana-thresholds button { padding: 6px 12px; border: 1px solid var(--border-color); border-radius: 4px; background: var(--panel-bg); cursor: pointer; }
 .ana-thresholds button:hover { background: var(--bg-color); }
 .ana-thresholds .ana-status { margin-left: auto; font-size: 0.85rem; color: #495057; }
-.ana-summary { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; margin-bottom: 20px; }
-.ana-summary a { display: block; text-decoration: none; color: var(--text-main); background: var(--panel-bg); border: 1px solid var(--border-color); border-radius: 6px; padding: 10px 14px; }
+.ana-summary { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 12px; margin-bottom: 20px; }
+.ana-summary a { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; text-decoration: none; color: var(--text-main); background: var(--panel-bg); border: 1px solid var(--border-color); border-radius: 6px; padding: 10px 14px; }
 .ana-summary a:hover { border-color: var(--accent); }
-.ana-summary .value { font-size: 1.5rem; font-weight: bold; }
+.ana-summary .value { font-size: 1.3rem; font-weight: bold; }
 .ana-summary .value.ana-clear { color: #198754; }
 .ana-summary .label { font-size: 0.85rem; color: #495057; }
 .ana-review section { margin-bottom: 28px; }

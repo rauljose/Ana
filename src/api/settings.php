@@ -28,16 +28,20 @@ if (!is_array($input)) fail(400, 'Invalid request');
 $page = $input['page'] ?? '';
 if (!is_string($page) || !preg_match('/^[a-z_]{1,64}$/', $page)) fail(400, 'Invalid page');
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $stmt = $mysqli->prepare("
-        INSERT INTO user_settings (page, name, value) VALUES (?, ?, ?)
-        ON DUPLICATE KEY UPDATE value = VALUES(value)
-    ");
-    foreach ((array) ($input['values'] ?? []) as $name => $value) {
-        if (!is_string($name) || !preg_match('/^[a-z_]{1,64}$/', $name)) fail(400, 'Invalid setting name');
-        if (!is_scalar($value) || mb_strlen((string) $value) > 255) fail(400, "Invalid value for $name");
-        $stmt->execute([$page, $name, (string) $value]);
+try {
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        $stmt = $mysqli->prepare("
+            INSERT INTO user_settings (page, name, value) VALUES (?, ?, ?)
+            ON DUPLICATE KEY UPDATE value = VALUES(value)
+        ");
+        foreach ((array) ($input['values'] ?? []) as $name => $value) {
+            if (!is_string($name) || !preg_match('/^[a-z_]{1,64}$/', $name)) fail(400, 'Invalid setting name');
+            if (!is_scalar($value) || mb_strlen((string) $value) > 255) fail(400, "Invalid value for $name");
+            $stmt->execute([$page, $name, (string) $value]);
+        }
     }
-}
 
-echo json_encode(settingsOf($mysqli, $page) ?: new stdClass());
+    echo json_encode(settingsOf($mysqli, $page) ?: new stdClass());
+} catch (mysqli_sql_exception $e) {
+    fail(500, 'Could not use table user_settings, run db/db_schema.sql: ' . $e->getMessage());
+}

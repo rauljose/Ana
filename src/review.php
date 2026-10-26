@@ -129,7 +129,7 @@
     // Lists: id of the section, columns, and the rows now
     const listDefinitions = [
         {
-            id: 'sharedVariables', label: 'Variables written to', sort: [{ column: 'writer_count', dir: 'desc' }], inputs: [],
+            id: 'sharedVariables', label: 'Global variables and superglobals written to', sort: [{ column: 'writer_count', dir: 'desc' }], inputs: [],
             rows: () => sharedSymbols(
                 data.globals,
                 row => row.symbol_type === 'Global variable' || row.symbol_type === 'Superglobal variable',
@@ -147,7 +147,7 @@
             ],
         },
         {
-            id: 'sharedConstants', label: 'Constants used outside their namespace', sort: [{ column: 'namespace_count', dir: 'desc' }], inputs: [],
+            id: 'sharedConstants', label: 'Project constants used outside their namespace', sort: [{ column: 'namespace_count', dir: 'desc' }], inputs: [],
             rows: () => sharedSymbols(data.globals, row => row.symbol_type === 'Constant' && !row.is_native, symbol => symbol.namespaces.size > 1),
             columns: [
                 anaCol.rowNumber(),
@@ -182,7 +182,7 @@
             ],
         },
         {
-            id: 'usedNamespaces', label: 'Namespaces used', sort: [{ column: 'afferent_ca', dir: 'desc' }, { column: 'calls_in', dir: 'desc' }], inputs: [],
+            id: 'usedNamespaces', label: 'Namespaces by use', sort: [{ column: 'afferent_ca', dir: 'desc' }, { column: 'calls_in', dir: 'desc' }], inputs: [],
             rows: () => data.namespaces,
             columns: [
                 anaCol.rowNumber(),
@@ -235,23 +235,19 @@
         namespacePicker.replaceChildren(new Option('All namespaces', ''), ...namespaces.map(namespace => new Option(namespace, namespace)));
     }
 
-    let saveTimer = null;
-    function saveSettings() {
-        clearTimeout(saveTimer);
-        saveTimer = setTimeout(async () => {
-            const status = document.getElementById('reviewStatus');
-            try {
-                const response = await fetch('api/settings.php', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ page: 'review', values: { ...settingsNow(), [namespaceSetting]: namespacePicker.value } }),
-                });
-                if (!response.ok) throw new Error((await response.json()).error);
-                status.textContent = 'Saved';
-            } catch (error) {
-                status.textContent = 'Settings not saved: ' + error.message;
-            }
-        }, 500);
+    async function saveSettings() {
+        const status = document.getElementById('reviewStatus');
+        try {
+            const response = await fetch('api/settings.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ page: 'review', values: { ...settingsNow(), [namespaceSetting]: namespacePicker.value } }),
+            });
+            if (!response.ok) throw new Error((await response.json()).error);
+            status.textContent = 'Settings saved';
+        } catch (error) {
+            status.textContent = 'Settings not saved: ' + error.message;
+        }
     }
 
     function changed() {
@@ -271,13 +267,13 @@
 
             const card = document.createElement('a');
             card.href = '#' + definition.id;
-            const value = document.createElement('div');
+            const label = document.createElement('span');
+            label.className = 'label';
+            label.textContent = definition.label + ':';
+            const value = document.createElement('span');
             value.className = 'value' + (rows.length === 0 ? ' ana-clear' : '');
             value.textContent = rows.length;
-            const label = document.createElement('div');
-            label.className = 'label';
-            label.textContent = definition.label;
-            card.append(value, label);
+            card.append(label, value);
             summary.appendChild(card);
         });
     }
@@ -312,14 +308,16 @@
 
         // Saved settings are optional: without the user_settings table the defaults stay
         try {
-            const saved = await fetch('api/settings.php?page=review').then(response => response.json());
+            const response = await fetch('api/settings.php?page=review');
+            const saved = await response.json();
+            if (!response.ok) throw new Error(saved.error);
             reviewSettings.forEach(setting => {
                 if (saved[setting.name] !== undefined) inputs[setting.name].value = saved[setting.name];
             });
             if (saved[namespaceSetting] !== undefined) namespacePicker.value = saved[namespaceSetting];
             status.textContent = '';
         } catch (error) {
-            status.textContent = 'Saved settings not available: defaults used';
+            status.textContent = 'Saved settings not available, defaults used: ' + error.message;
         }
         refresh();
     }
