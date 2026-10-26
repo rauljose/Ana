@@ -66,6 +66,12 @@ while ($row = $res->fetch_assoc()) {
     ] + usedBy($row['class_name'], $row['method_name']);
 }
 
+// ?only=globals leaves out the properties, for the page that lists globals per method
+if (($_GET['only'] ?? '') === 'globals') {
+    echo json_encode($report);
+    exit;
+}
+
 // 2. Properties, static properties and class constants of the method's own class.
 // The declaration tells which one it is; members declared in a parent class or trait are not found
 $res = $mysqli->query("
