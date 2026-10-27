@@ -73,6 +73,32 @@ if (($_GET['only'] ?? '') === 'globals') {
     exit;
 }
 
+// Where an inherited member is declared: the nearest class up the extends and trait use chain declaring it
+$parents = [];
+$res = $mysqli->query("SELECT source_class, target_class FROM class_relations WHERE relation_type IN ('EXTENDS', 'USES')");
+while ($row = $res->fetch_assoc()) {
+    $parents[$row['source_class']][] = $row['target_class'];
+}
+$declared = [];
+$res = $mysqli->query("SELECT class_name, property_name, is_static FROM properties");
+while ($row = $res->fetch_assoc()) {
+    $declared[$row['class_name'] . '::' . $row['property_name']] = (int) $row['is_static'] === 1;
+}
+
+function declaringClass(string $className, string $name, array $parents, array $declared): ?string
+{
+    $queue = $parents[$className] ?? [];
+    $seen = [$className => true];
+    while ($queue) {
+        $candidate = array_shift($queue);
+        if (isset($seen[$candidate])) continue;
+        $seen[$candidate] = true;
+        if (isset($declared[$candidate . '::' . $name])) return $candidate;
+        array_push($queue, ...($parents[$candidate] ?? []));
+    }
+    return null;
+}
+
 // 2. Properties, static properties and class constants of the method's own class.
 // The declaration tells which one it is; members declared in a parent class or trait are not found
 $res = $mysqli->query("
@@ -97,9 +123,15 @@ while ($row = $res->fetch_assoc()) {
         $symbolFqn = $row['class_name'] . '::$' . $name;
     }
 
+    // declared_in: the class declaring the member, found up the chain for inherited ones; '' when unknown
+    $declaredIn = $row['declared_id'] !== null ? $row['class_name'] : (declaringClass($row['class_name'], $name, $parents, $declared) ?? '');
+    $isDeclaredStatic = $declaredIn !== '' && $declared[$declaredIn . '::' . $name];
+
     $report[] = [
         'symbol_type' => $symbolType,
         'is_native' => false,
+        'declared_in' => $declaredIn,
+        'is_declared_static' => $isDeclaredStatic,
         'is_own_class' => $row['declared_id'] !== null,
         'symbol' => $symbol,
         'symbol_fqn' => $symbolFqn,

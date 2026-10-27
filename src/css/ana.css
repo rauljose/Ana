@@ -80,7 +80,7 @@ body.ana-table-page {
 .ana-table-wrap .tabulator { height: 100%; }
 
 /* --- Index page --- */
-body.ana-index-page {
+body.ana-index-page, body.ana-review-page {
     margin: 0;
     font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     background-color: var(--bg-color);
@@ -160,3 +160,24 @@ body.ana-index-page {
 .ana-guide dd { margin: 0; font-size: 0.9rem; color: #495057; }
 
 .ana-dialog-error { margin: 0 0 8px; color: #dc3545; font-size: 0.85rem; min-height: 1.1em; }
+
+/* --- Review page --- */
+.ana-review { max-width: 1400px; margin: 0 auto; padding: 20px; }
+.ana-review h1 { margin: 0 0 4px; font-size: 1.5rem; }
+.ana-review .ana-subtitle { margin: 0 0 16px; color: #6c757d; font-size: 0.9rem; }
+.ana-thresholds { display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end; background: var(--panel-bg); border: 1px solid var(--border-color); border-radius: 6px; padding: 12px 16px; margin-bottom: 16px; }
+.ana-thresholds label { display: flex; flex-direction: column; gap: 3px; font-size: 0.8rem; color: #495057; }
+.ana-thresholds input, .ana-thresholds select { padding: 5px 8px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 0.9rem; width: 120px; }
+.ana-thresholds select { width: 220px; }
+.ana-thresholds button { padding: 6px 12px; border: 1px solid var(--border-color); border-radius: 4px; background: var(--panel-bg); cursor: pointer; }
+.ana-thresholds button:hover { background: var(--bg-color); }
+.ana-thresholds .ana-status { margin-left: auto; font-size: 0.85rem; color: #495057; }
+.ana-summary { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 12px; margin-bottom: 20px; }
+.ana-summary a { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; text-decoration: none; color: var(--text-main); background: var(--panel-bg); border: 1px solid var(--border-color); border-radius: 6px; padding: 10px 14px; }
+.ana-summary a:hover { border-color: var(--accent); }
+.ana-summary .value { font-size: 1.3rem; font-weight: bold; }
+.ana-summary .value.ana-clear { color: #198754; }
+.ana-summary .label { font-size: 0.85rem; color: #495057; }
+.ana-review section { margin-bottom: 28px; }
+.ana-review h2 { font-size: 1.1rem; margin: 0 0 2px; padding-bottom: 4px; border-bottom: 2px solid var(--accent); }
+.ana-review .ana-why { margin: 4px 0 8px; font-size: 0.85rem; color: #495057; }
