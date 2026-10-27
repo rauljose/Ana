@@ -29,11 +29,18 @@
         <div id="sharedVariablesTable"></div>
     </section>
 
-    <section id="sharedConstants">
-        <h2>Project constants used outside their namespace</h2>
-        <p class="ana-why">Constants PHP does not define itself, used from more than one namespace: configuration the whole project depends on. Where a constant is defined is not stored, so check that its definition is in analyzed code.</p>
-        <div class="ana-thresholds" id="sharedConstantsInputs"></div>
-        <div id="sharedConstantsTable"></div>
+    <section id="sharedReads">
+        <h2>Constants, defines, global variables and superglobals read outside their namespace</h2>
+        <p class="ana-why">Project constants (<code>define()</code> and <code>const</code>; native ones are left out), <code>global</code> variables and superglobals that methods of more than one namespace read: configuration and state the whole project depends on. Where a constant or variable is defined is not stored, so check that its definition is in analyzed code.</p>
+        <div class="ana-thresholds" id="sharedReadsInputs"></div>
+        <div id="sharedReadsTable"></div>
+    </section>
+
+    <section id="staticWrites">
+        <h2>Static properties written</h2>
+        <p class="ana-why">Static properties that a method writes: state shared by the whole process, changed by whoever runs. Sorted by the number of classes writing the same property. Only members of the method's own class are recorded, so a property written from another class, or through a subclass, is not attributed.</p>
+        <div class="ana-thresholds" id="staticWritesInputs"></div>
+        <div id="staticWritesTable"></div>
     </section>
 
     <section id="hardMethods">
@@ -78,10 +85,13 @@
     function sharedSymbols(globals, isWanted, isListed) {
         const bySymbol = new Map();
         globals.filter(isWanted).forEach(row => {
-            const symbol = bySymbol.get(row.symbol_fqn) ?? { symbol: row.symbol_fqn, symbol_type: row.symbol_type, namespaces: new Set(), users: new Set(), writers: new Set() };
+            const symbol = bySymbol.get(row.symbol_fqn) ?? { symbol: row.symbol_fqn, symbol_type: row.symbol_type, namespaces: new Set(), users: new Set(), writers: new Set(), writerClasses: new Set() };
             symbol.namespaces.add(row.namespace);
             symbol.users.add(row.method_fqn);
-            if (row.access !== 'Read') symbol.writers.add(row.method_fqn);
+            if (row.access !== 'Read') {
+                symbol.writers.add(row.method_fqn);
+                symbol.writerClasses.add(row.class_name || row.method_fqn);
+            }
             bySymbol.set(row.symbol_fqn, symbol);
         });
         return [...bySymbol.values()]
@@ -94,6 +104,7 @@
                 user_count: symbol.users.size,
                 writer_count: symbol.writers.size,
                 writer_list: [...symbol.writers].sort().join(', '),
+                writer_class_count: symbol.writerClasses.size,
             }));
     }
 
@@ -118,7 +129,13 @@
         return methods
             .filter(row => row.kind !== 'Native Function' && numberOf(row.calls_in_total) >= limits.min_calls_in)
             .filter(row => namespace === '' || row.namespace === namespace)
-            .map(row => ({ ...row, calls_in_total: numberOf(row.calls_in_total), cyclo_complexity: numberOf(row.cyclo_complexity) }));
+                        .map(row => ({
+                ...row,
+                calls_in_total: numberOf(row.calls_in_total),
+                cyclo_complexity: numberOf(row.cyclo_complexity),
+                cognitive_complexity: numberOf(row.cognitive_complexity),
+                hotspot_score: numberOf(row.cyclo_complexity) * numberOf(row.calls_in_total),
+            }));
     }
 
     const settingsNow = () => Object.fromEntries(reviewSettings.map(setting => {
@@ -147,14 +164,31 @@
             ],
         },
         {
-            id: 'sharedConstants', label: 'Project constants used outside their namespace', sort: [{ column: 'namespace_count', dir: 'desc' }], inputs: [],
-            rows: () => sharedSymbols(data.globals, row => row.symbol_type === 'Constant' && !row.is_native, symbol => symbol.namespaces.size > 1),
+            id: 'sharedReads', label: 'Constants, defines, global variables and superglobals read outside their namespace', sort: [{ column: 'namespace_count', dir: 'desc' }], inputs: [],
+            rows: () => sharedSymbols(
+                data.globals,
+                row => ['Constant', 'Global variable', 'Superglobal variable'].includes(row.symbol_type) && !(row.symbol_type === 'Constant' && row.is_native) && row.access !== 'Write',
+                symbol => symbol.namespaces.size > 1
+            ),
             columns: [
                 anaCol.rowNumber(),
-                anaCol.text('Constant', 'symbol', 'Name of the constant as written in code.'),
-                anaCol.num('Namespaces', 'namespace_count', 'Different namespaces with a method using the constant.'),
-                anaCol.num('Methods', 'user_count', 'Methods and functions using the constant.'),
-                anaCol.text('Namespaces using it', 'namespace_list', 'The namespaces with a method using the constant.'),
+                anaCol.text('Symbol', 'symbol', 'Name of the constant or variable as written in code.'),
+                anaCol.list('Type', 'symbol_type', 'Constant (define or const), Global variable (global keyword) or Superglobal variable ($_GET, $_SESSION...).'),
+                anaCol.num('Namespaces', 'namespace_count', 'Different namespaces with a method reading it.'),
+                anaCol.num('Methods', 'user_count', 'Methods and functions reading it.'),
+                anaCol.text('Namespaces reading it', 'namespace_list', 'The namespaces with a method reading it.'),
+            ],
+        },
+        {
+            id: 'staticWrites', label: 'Static properties written', sort: [{ column: 'writer_class_count', dir: 'desc' }, { column: 'writer_count', dir: 'desc' }], inputs: [],
+            rows: () => sharedSymbols(data.globals, row => row.symbol_type === 'Static property', symbol => symbol.writers.size > 0),
+            columns: [
+                anaCol.rowNumber(),
+                anaCol.text('Static property', 'symbol', 'Class::$property.'),
+                anaCol.num('Classes writing', 'writer_class_count', 'Different classes with a method writing the property.'),
+                anaCol.num('Writers', 'writer_count', 'Methods that write the property.'),
+                anaCol.text('Writing methods', 'writer_list', 'The methods that write the property.'),
+                anaCol.num('Methods using it', 'user_count', 'Methods reading or writing the property.'),
             ],
         },
         {
@@ -179,6 +213,8 @@
                 anaCol.text('Namespace', 'namespace', 'Namespace of the class or function.'),
                 anaCol.num('Calls in', 'calls_in_total', 'Calls to this method found in the project.'),
                 anaCol.num('Cyclomatic', 'cyclo_complexity', 'Number of independent paths through the method. A complex method that is also widely used is a hotspot.'),
+                anaCol.num('Cognitive', 'cognitive_complexity', 'How hard the method is to read; nesting costs extra.'),
+                anaCol.num('Hotspot score', 'hotspot_score', 'Hotspot score = Cyclomatic complexity x Calls in (fan-in). Complex methods that many methods call are the riskiest to change.'),
             ],
         },
         {
@@ -301,7 +337,7 @@
     async function load() {
         const status = document.getElementById('reviewStatus');
         const [globals, methods, namespaces] = await Promise.all(
-            ['api/globalsReport.php?only=globals', 'api/methodSummary.php', 'api/namespaceSummary.php'].map(url => fetch(url).then(response => response.json()))
+            ['api/globalsReport.php', 'api/methodSummary.php', 'api/namespaceSummary.php'].map(url => fetch(url).then(response => response.json()))
         );
         data = { globals, methods, namespaces };
         fillNamespacePicker();
