@@ -38,9 +38,16 @@
 
     <section id="staticWrites">
         <h2>Static properties written</h2>
-        <p class="ana-why">Static properties that a method writes: state shared by the whole process, changed by whoever runs. Sorted by the number of classes writing the same property. Only members of the method's own class are recorded, so a property written from another class, or through a subclass, is not attributed.</p>
+        <p class="ana-why">Static properties that a method writes: state shared by the whole process, changed by whoever runs. A property written through a subclass or a using class is attributed to the class that declares it. Filter the "Written in own class" and "Written in other classes" columns: tick shows only those, cross excludes them.</p>
         <div class="ana-thresholds" id="staticWritesInputs"></div>
         <div id="staticWritesTable"></div>
+    </section>
+
+    <section id="sensitiveMethods">
+        <h2>Methods and functions with sensitive parameters</h2>
+        <p class="ana-why">Parameters marked <code>#[SensitiveParameter]</code>: a secret passes through. The parameter name and type are read from the stored signature.</p>
+        <div class="ana-thresholds" id="sensitiveMethodsInputs"></div>
+        <div id="sensitiveMethodsTable"></div>
     </section>
 
     <section id="hardMethods">
@@ -85,12 +92,14 @@
     function sharedSymbols(globals, isWanted, isListed) {
         const bySymbol = new Map();
         globals.filter(isWanted).forEach(row => {
-            const symbol = bySymbol.get(row.symbol_fqn) ?? { symbol: row.symbol_fqn, symbol_type: row.symbol_type, namespaces: new Set(), users: new Set(), writers: new Set(), writerClasses: new Set() };
+            const symbol = bySymbol.get(row.symbol_fqn) ?? { symbol: row.symbol_fqn, symbol_type: row.symbol_type, namespaces: new Set(), users: new Set(), writers: new Set(), writerClasses: new Set(), writtenInOwn: false, writtenInOther: false };
             symbol.namespaces.add(row.namespace);
             symbol.users.add(row.method_fqn);
             if (row.access !== 'Read') {
                 symbol.writers.add(row.method_fqn);
                 symbol.writerClasses.add(row.class_name || row.method_fqn);
+                if (row.declared_in === row.class_name) symbol.writtenInOwn = true;
+                else symbol.writtenInOther = true;
             }
             bySymbol.set(row.symbol_fqn, symbol);
         });
@@ -105,7 +114,28 @@
                 writer_count: symbol.writers.size,
                 writer_list: [...symbol.writers].sort().join(', '),
                 writer_class_count: symbol.writerClasses.size,
+                written_in_own: symbol.writtenInOwn,
+                written_in_other: symbol.writtenInOther,
             }));
+    }
+
+    // Static property rows, with inherited ones attributed to the class declaring the property
+    function staticPropertyRows(globals) {
+        return globals
+            .filter(row => row.symbol_type === 'Static property' || (row.symbol_type === 'Inherited member' && row.is_declared_static))
+            .map(row => ({ ...row, symbol_type: 'Static property', symbol_fqn: row.declared_in + '::$' + row.symbol.replace(/^\$/, '') }));
+    }
+
+    // Sensitive parameters read from the printed signature: #[SensitiveParameter] [modifiers] [type] [&|...]$name
+    function sensitiveParameters(signature) {
+        const found = [...String(signature ?? '').matchAll(/#\[\s*\\?SensitiveParameter\s*(?:\([^)]*\))?\s*\]\s*((?:(?:public|protected|private|readonly)\s+)*)([^$]*?)\s*(?:&|\.\.\.)?\s*\$(\w+)/g)];
+        return found.map(match => `${match[2].trim() || '(no type)'} $${match[3]}`);
+    }
+
+    function sensitiveMethods(methods) {
+        return methods
+            .filter(row => row.kind !== 'Native Function' && numberOf(row.has_sensitive_parameter) === 1)
+            .map(row => ({ ...row, sensitive_parameters: sensitiveParameters(row.signature).join('\n') || '(not found in the signature)' }));
     }
 
     function hardMethods(methods, limits) {
@@ -181,14 +211,31 @@
         },
         {
             id: 'staticWrites', label: 'Static properties written', sort: [{ column: 'writer_class_count', dir: 'desc' }, { column: 'writer_count', dir: 'desc' }], inputs: [],
-            rows: () => sharedSymbols(data.globals, row => row.symbol_type === 'Static property', symbol => symbol.writers.size > 0),
+            rows: () => sharedSymbols(
+                staticPropertyRows(data.globals),
+                () => true,
+                symbol => symbol.writers.size > 0
+            ),
             columns: [
                 anaCol.rowNumber(),
                 anaCol.text('Static property', 'symbol', 'Class::$property.'),
+                anaCol.flag('Written in own class', 'written_in_own', 'A method of the class declaring the property writes it. Tick: only those, cross: leave those out, empty: all.'),
+                anaCol.flag('Written in other classes', 'written_in_other', 'A method of another class (a subclass or a class using the trait) writes it. Tick: only those, cross: leave those out, empty: all.'),
                 anaCol.num('Classes writing', 'writer_class_count', 'Different classes with a method writing the property.'),
                 anaCol.num('Writers', 'writer_count', 'Methods that write the property.'),
                 anaCol.text('Writing methods', 'writer_list', 'The methods that write the property.'),
                 anaCol.num('Methods using it', 'user_count', 'Methods reading or writing the property.'),
+            ],
+        },
+        {
+            id: 'sensitiveMethods', label: 'Methods and functions with sensitive parameters', sort: [{ column: 'fqn', dir: 'asc' }], inputs: [],
+            rows: () => sensitiveMethods(data.methods),
+            columns: [
+                anaCol.rowNumber(),
+                anaCol.detail('Method', 'fqn', 'Method or function. Click for the method detail page.', 'method', 'fqn'),
+                anaCol.text('Sensitive parameters', 'sensitive_parameters', 'Type and name of each parameter marked #[SensitiveParameter].', { formatter: 'textarea', width: 260 }),
+                anaCol.text('Signature', 'signature', 'Signature as printed by the analysis.', { formatter: 'textarea', width: 520 }),
+                anaCol.text('Docblock', 'doc_comment', 'Doc comment of the method.', { formatter: 'textarea', width: 520 }),
             ],
         },
         {
