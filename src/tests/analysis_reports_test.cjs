@@ -43,9 +43,12 @@ const shared = D.sharedState([
     { symbol_type: 'Static property', symbol: '$cache', symbol_fqn: 'Base::$cache', declared_in: 'Base', method_fqn: 'A\\Base::write', namespace: 'A', access: 'Write' },
     { symbol_type: 'Inherited member', symbol: 'cache', symbol_fqn: 'Child::cache', declared_in: 'Base', is_declared_static: true, method_fqn: 'B\\Child::read', namespace: 'B', access: 'Read/Write' },
     { symbol_type: 'Property', symbol: '$cache', symbol_fqn: 'Instance::$cache', method_fqn: 'Instance::write', namespace: '[Global]', access: 'Write' },
+    { symbol_type: 'Inherited member', symbol: 'LIMIT', symbol_fqn: 'Child::LIMIT', declared_in: 'Base', is_declared_static: true, is_declared_constant: true, method_fqn: 'B\\Child::read', namespace: 'B', access: 'Read' },
     { symbol_type: 'Constant', symbol: 'DEBUG', symbol_fqn: 'DEBUG', method_fqn: 'f', namespace: '[Global]', access: 'Read' },
 ]);
-assert.equal(shared.length, 1, 'Instance state and constants excluded; inherited static state merged');
+assert.equal(shared.length, 1, 'Instance state, constants and inherited class constants excluded; inherited static state merged');
+assert.equal(shared[0].symbol, 'Base::$cache');
+assert.equal(shared[0].kind, 'Static property');
 assert.equal(shared[0].writers, 2);
 assert.equal(shared[0].readers, 1);
 assert.equal(shared[0].crossNamespace, true);
