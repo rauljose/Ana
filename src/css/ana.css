@@ -181,3 +181,12 @@ body.ana-index-page, body.ana-review-page {
 .ana-review section { margin-bottom: 28px; }
 .ana-review h2 { font-size: 1.1rem; margin: 0 0 2px; padding-bottom: 4px; border-bottom: 2px solid var(--accent); }
 .ana-review .ana-why { margin: 4px 0 8px; font-size: 0.85rem; color: #495057; }
+
+/* --- Review page graph --- */
+.ana-graph-box { display: flex; flex-direction: column; height: 560px; margin-top: 12px; background: var(--panel-bg); border: 1px solid var(--border-color); border-radius: 6px; }
+.ana-graph-tools { display: flex; gap: 12px; align-items: center; padding: 6px 10px; border-bottom: 1px solid var(--border-color); font-size: 0.85rem; }
+.ana-graph-tools button { padding: 4px 12px; border: 1px solid var(--border-color); border-radius: 4px; background: var(--panel-bg); cursor: pointer; }
+.ana-graph-tools button:hover { background: var(--bg-color); }
+.ana-graph-tools #graphMaximize { margin-left: auto; }
+.ana-graph-canvas { flex: 1; min-height: 0; }
+.ana-graph-box.ana-graph-maximized { position: fixed; inset: 0; z-index: 1000; height: auto; margin: 0; border-radius: 0; }
