@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="css/ana.css">
     <?php require __DIR__ . '/partials/tabulator_head.php'; ?>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+    <script src="js/ana_graph.js"></script>
 </head>
 <body class="ana-review-page">
 
@@ -56,7 +57,15 @@
         <p class="ana-why">Global variables, superglobals, project constants, and public properties and class constants (static or not) that a method reads or writes. Read by and Written by list the methods. Only access through <code>$this</code>, <code>self</code> and <code>static</code> is stored, so a member used only from other classes (<code>$object->name</code>, <code>Other::NAME</code>) does not show. Type is the declared type hint; superglobals are always arrays; the comment is the doc block of the declaration. The graph shows the rows the grid shows now (the first 40 by number of methods): blue lines read, red lines write.</p>
         <div class="ana-thresholds" id="stateSymbolsInputs"></div>
         <div id="stateSymbolsTable"></div>
-        <div id="stateSymbolsGraph" style="height: 560px; margin-top: 12px; background: var(--panel-bg); border: 1px solid var(--border-color); border-radius: 6px;"></div>
+        <div class="ana-graph-box" id="stateSymbolsGraphBox">
+            <div class="ana-graph-tools">
+                <button id="graphSpread" title="Push the nodes further apart. Each click spreads them more; it also releases held nodes">Spread</button>
+                <button id="graphTighten" title="Back to the default spacing">Default spacing</button>
+                <label title="After you drop a node, every node stays where it is. Untick to let the layout move again"><input type="checkbox" id="graphHold"> Hold dropped nodes</label>
+                <button id="graphMaximize" title="Use the whole window. Escape goes back">Maximize</button>
+            </div>
+            <div class="ana-graph-canvas" id="stateSymbolsGraph"></div>
+        </div>
     </section>
 
     <section id="sensitiveMethods">
@@ -179,9 +188,9 @@
     // Graph of the symbols in the grid: symbols and the methods reading (blue) or writing (red) them
     const graphSymbolLimit = 40;
     let stateGraph = null;
+    let graphTools = null;
 
     function renderStateGraph(rows) {
-        if (stateGraph === null) stateGraph = echarts.init(document.getElementById('stateSymbolsGraph'));
         const shown = [...rows]
             .sort((a, b) => (b.reader_count + b.writer_count) - (a.reader_count + a.writer_count))
             .slice(0, graphSymbolLimit);
@@ -195,6 +204,8 @@
             split(row.reader_list).forEach(method => { addMethod(method); links.push({ source: method, target: row.symbol, lineStyle: { color: '#0d6efd' } }); });
             split(row.writer_list).forEach(method => { addMethod(method); links.push({ source: method, target: row.symbol, lineStyle: { color: '#dc3545' } }); });
         });
+        const graphNodes = [...nodes.values()];
+        graphTools.setNodes(graphNodes);
         stateGraph.setOption({
             toolbox: { feature: { saveAsImage: { name: 'global_state', title: 'Download Image' } } },
             tooltip: { formatter: (param) => param.dataType === 'node' ? param.data.name : '' },
@@ -203,12 +214,19 @@
                 type: 'graph', layout: 'force', roam: true, draggable: true,
                 label: { show: true, position: 'right', fontSize: 10 },
                 edgeSymbol: ['none', 'arrow'], edgeSymbolSize: 6,
-                force: { repulsion: 120, edgeLength: [40, 120] },
+                force: graphTools.force({ repulsion: 120, edgeLength: [40, 120] }),
                 categories: categories.map(name => ({ name })),
-                data: [...nodes.values()],
+                data: graphNodes,
                 links,
             }],
         }, true);
+    }
+
+    function initGraphTools() {
+        stateGraph = echarts.init(document.getElementById('stateSymbolsGraph'));
+        graphTools = anaForceGraphTools(stateGraph, { spread: 'graphSpread', tighten: 'graphTighten', hold: 'graphHold' });
+        anaInitMaximize(document.getElementById('stateSymbolsGraphBox'), document.getElementById('graphMaximize'), stateGraph);
+        window.addEventListener('resize', () => stateGraph.resize());
     }
 
     // Sensitive parameters read from the printed signature: #[SensitiveParameter] [modifiers] [type] [&|...]$name
@@ -524,6 +542,7 @@
 
     buildInputs();
     buildTables();
+    initGraphTools();
     load().catch(error => { document.getElementById('reviewStatus').textContent = 'Failed to load data: ' + error.message; });
 </script>
 </body>

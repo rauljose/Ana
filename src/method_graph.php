@@ -14,6 +14,7 @@ $preSelectedMethods = array_values(array_filter(array_map('trim', explode(',',$_
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
 
     <link rel="stylesheet" href="css/ana.css">
+    <script src="js/ana_graph.js"></script>
 
     <!-- Reusable Dual Listbox Widget -->
     <link rel="stylesheet" href="js/DualListbox/DualListbox.css">
@@ -192,12 +193,14 @@ $preSelectedMethods = array_values(array_filter(array_map('trim', explode(',',$_
     <div class="charts-container" id="chartsContainer">
         <div class="chart-wrapper" id="wrapScatter">
             <h2>Method Hotspots (Fan-out vs Complexity)</h2>
+            <div class="ana-graph-tools"><button id="maxScatter" title="Use the whole window. Escape goes back">Maximize</button></div>
             <div id="scatterChart" class="chart-canvas"></div>
         </div>
 
         <div class="chart-wrapper" id="wrapRadar">
             <h2>Method Health Radar</h2>
             <div id="radarMessage" class="sys-message"></div>
+            <div class="ana-graph-tools"><button id="maxRadar" title="Use the whole window. Escape goes back">Maximize</button></div>
             <div id="radarChart" class="chart-canvas"></div>
         </div>
     </div>
@@ -270,6 +273,9 @@ $preSelectedMethods = array_values(array_filter(array_map('trim', explode(',',$_
             scatterInstance.resize();
             radarInstance.resize();
         });
+
+        anaInitMaximize(document.getElementById('wrapScatter'), document.getElementById('maxScatter'), scatterInstance);
+        anaInitMaximize(document.getElementById('wrapRadar'), document.getElementById('maxRadar'), radarInstance);
 
         document.getElementById('btnUpdate').addEventListener('click', updateGraphs);
         document.getElementById('chkScatter').addEventListener('change', toggleLayout);
