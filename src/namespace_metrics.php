@@ -53,7 +53,7 @@
         },
         columns: [
             anaCol.rowNumber(),
-            anaCol.text('Namespace', 'namespace', 'Namespace. Classes are rolled up by their exact namespace; sub namespaces are separate rows.', { frozen: true }),
+            anaCol.detail('Namespace', 'namespace', 'Namespace. Classes are rolled up by their exact namespace; sub namespaces are separate rows. Click it to open the namespace detail page.', 'namespace', 'namespace', { frozen: true }),
             {
                 title: 'Types', columns: [
                     anaCol.num('Classes', 'classes', 'Concrete classes in the namespace.'),
@@ -86,8 +86,8 @@
                     anaCol.num('Calls internal', 'calls_internal', 'Calls between classes of the same namespace.'),
                     anaCol.num('Internal ratio', 'internal_call_ratio', 'Internal calls / (internal + calls out). High means cohesive; low means it mostly talks to other namespaces and may belong elsewhere.'),
                     anaCol.flag('In cycle', 'in_cycle', 'Part of a dependency cycle between namespaces: A reaches B and B reaches A again. Cycles make namespaces impossible to separate or release alone.'),
-                    anaCol.text('Namespaces used', 'namespaces_used', 'Namespaces this one calls.'),
-                    anaCol.text('Namespaces using this', 'namespaces_using_this', 'Namespaces that call this one.'),
+                    anaCol.detailList('Namespaces used', 'namespaces_used', 'Namespaces this one calls.', 'namespace'),
+                    anaCol.detailList('Namespaces using this', 'namespaces_using_this', 'Namespaces that call this one.', 'namespace'),
                 ]
             },
         ],

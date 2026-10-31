@@ -85,10 +85,10 @@
             },
             {
                 title: 'Used by', columns: [
-                    anaCol.text('Namespace', 'namespace', 'Namespace of the class or function.'),
+                    anaCol.detail('Namespace', 'namespace', 'Namespace of the class or function. Click it to open the namespace detail page.', 'namespace', 'namespace'),
                     anaCol.detail('Class', 'class_short_name', 'Class of the method. Click for the class detail page. Empty for functions.', 'class', 'class_name'),
-                    anaCol.text('Class FQN', 'class_name', 'Fully qualified class name.'),
-                    anaCol.text('Method FQN', 'method_fqn', 'Fully qualified Class::method, or the function name.'),
+                    anaCol.detail('Class FQN', 'class_name', 'Fully qualified class name. Click it to open the class detail page.', 'class', 'class_name'),
+                    anaCol.detail('Method FQN', 'method_fqn', 'Fully qualified Class::method, or the function name. Click it to open the method detail page.', 'method', 'method_fqn'),
                     anaCol.list('Kind', 'kind', 'Method or Function.'),
                 ]
             },

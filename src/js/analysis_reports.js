@@ -5,25 +5,26 @@
     const $ = name => document.getElementById(name);
     const D = AnaReportData;
     const descriptions = {
-        impact: 'Explore potential change impact through recorded callers. Each row includes one shortest path from a caller to the selected method or function.',
-        state: 'Inspect shared variables and static members by their recorded readers and writers. Select a symbol to see the methods and access modes behind the counts.',
-        consumers: 'Understand the observed consumers of each public method before maintenance or an upgrade. Distinct callers and call sites are counted separately.',
-        cycles: 'Inspect mutually reachable groups in the recorded call graph. A group may contain several overlapping cycles; its example is one path, not every possible cycle.',
+        impact: 'Choose a method or function and press Trace callers to list everything that calls it, directly or through other methods. These are the places to retest if you change it. Each row shows one shortest chain of calls from the caller down to your choice.',
+        state: 'Global variables, superglobals and static properties are state shared by the whole request. For each one this lists the methods that read it and the methods that write it. Many writers, or readers and writers in different namespaces, mean hidden coupling. Select a row to see who touches it and how.',
+        consumers: 'For each public method: how many places call it, how many different callers that is, and whether they are inside its own class or outside it. Use it before changing a method signature or upgrading a package to see who depends on it.',
+        cycles: 'A group is a set of namespaces, classes or methods that depend on each other in a loop: from any member you can reach every other member by following calls. Choose the level, then select a group to see an example loop and the calls behind it.',
     };
     const notes = {
-        impact: 'A path indicates potential impact, not proof that a change breaks the caller. Paths follow calls only, not type hints, inheritance or shared state. The selected method is excluded from its own caller list, including recursive paths. Targets without a stored definition can still be explored.',
-        state: 'Instance properties and explicitly classified constants are excluded. Static members are grouped by their known declaring class, including inherited accesses. The existing endpoint does not distinguish inherited static properties from inherited constants, so read-only inherited members may include constants in the All view. Reads and writes may overlap. Array keys and aliases are not stored: $_SESSION is one symbol, and $GLOBALS access cannot be equated with individual global variables. A recorded global declaration may appear as a read. No execution order or data flow is inferred.',
-        consumers: 'Consumers outside the class are observed in the analyzed data; this is not a count of downstream package installations. Function callers count as separate owners. No recorded calls is not a recommendation to remove or privatize an API. Interface dispatch, framework entry points and dynamic invocations can be absent.',
-        cycles: 'Groups use static call edges only. Internal calls are excluded at class and namespace levels. Direct recursion is included at method level. Functions remain separate nodes at class level. Cycles can guide regression testing and maintenance; they do not require splitting or changing classes.',
+        impact: 'A caller is a place that could be affected, not proof that the change breaks it. Only calls are followed, not shared state. A call is recorded against the class of the variable it was made on, so a method called through a subclass or an interface is recorded under that class and its callers can be missing here. A method is never listed as its own caller. Calls inside the file a script runs from, outside any method or function, are not recorded.',
+        state: 'Only static properties, global variables and superglobals are listed; instance properties and class constants cannot be shared and changed this way. A static property is recorded only when accessed as $this, self:: or static::, so a property used from another class as Registry::$items is not seen: cross-class sharing of static properties is understated. $_SESSION is one symbol, not one per key, and aliases are not followed. A method that only declares a variable with global is counted as a reader. Reads and writes can overlap: a method that does $count++ is both. Nothing here says in which order things happen.',
+        consumers: 'Only public methods are listed. Callers are counted in the analyzed code, not in other projects that install it. No recorded calls does not mean unused: calls through an interface or a parent class are recorded under that interface or class, and framework entry points, magic methods and dynamic calls are not seen. Do not remove or hide a method on this alone. Protected methods, which subclasses depend on, are not listed.',
+        cycles: 'Groups are built from recorded calls. Calls inside one class or one namespace are ignored at the class and namespace levels, so a group is always a loop between different things. At the method level a method that calls itself is shown as a group of one. A group can hold several overlapping loops; the example is one of them. A loop is a reason to test the group together, not an order to split it.',
     };
     $('reportIntro').textContent = descriptions[mode];
     $('reportNotes').textContent = notes[mode];
     let table, allRows = [];
     const text = (title, field, tip) => anaCol.text(title, field, tip, { formatter: 'plaintext', maxWidth: 440 });
     const num = (title, field, tip) => anaCol.num(title, field, tip);
+    const namespaceColumn = (tip) => anaCol.detail('Namespace', 'namespace', tip, 'namespace', 'namespace', { maxWidth: 440 });
     const method = () => anaCol.detail('Method', 'method', 'Open the stored method detail.', 'method', 'method');
     function entityLink(name, level = 'method') {
-        if (level === 'namespace') return document.createTextNode(name);
+        if (level === 'namespace') return anaDetailLink('namespace', name);
         const link = document.createElement('a');
         const isFunction = name.startsWith('[function] ');
         link.textContent = name;
@@ -104,14 +105,14 @@
             }));
         }
     }
-    function mount(rows, columns, sort) {
+    function mount(rows, columns, sort, placeholder = 'No matching recorded relationships.') {
         allRows = rows;
         table = new Tabulator('#reportTable', {
             data: rows, columns, layout: mode === 'impact' ? 'fitColumns' : 'fitDataFill', maxHeight: '520px', movableColumns: true,
-            placeholder: 'No matching recorded relationships.', initialSort: sort,
+            placeholder, initialSort: sort,
         });
         const status = () => { $('reportStatus').textContent = `${table.getDataCount('active')} of ${allRows.length} rows shown. Select a row for evidence.`; };
-        table.on('tableBuilt', status);
+        if (mode !== 'impact') table.on('tableBuilt', status);
         table.on('dataFiltered', status);
         table.on('rowClick', (event, row) => showRow(row.getData()));
         $('reportClear').disabled = false; $('reportCsv').disabled = false;
@@ -145,37 +146,44 @@
             names.forEach(name => choices.append(new Option(name, name))); $('reportControls').append(choices);
             const depth = select('Maximum distance', [['all', 'All reachable callers'], ['1', '1 — direct callers'], ['2', '2'], ['3', '3'], ['5', '5']]);
             const button = document.createElement('button'); button.textContent = 'Trace callers'; $('reportControls').append(button);
-            mount([], [{ ...method(), width: 280 }, { ...text('Namespace', 'namespace', 'Namespace of the caller.'), width: 180 },
+            mount([], [{ ...method(), width: 280 }, { ...namespaceColumn('Namespace of the caller. Click it to open the namespace detail page.'), width: 180 },
                 { ...num('Distance', 'distance', 'Shortest number of call edges to the target.'), width: 100 },
                 { ...text('Relationship', 'relationship', 'Direct or indirect caller.'), width: 140 },
-                { ...linkedColumn('Example path', 'path', 'A shortest recorded caller-to-target path.', ' → '), maxWidth: undefined, minWidth: 240, widthGrow: 1 }], [{ column: 'distance', dir: 'asc' }]);
+                { ...linkedColumn('Example path', 'path', 'A shortest recorded caller-to-target path.', ' → '), maxWidth: undefined, minWidth: 240, widthGrow: 1 }], [{ column: 'distance', dir: 'asc' }], 'Choose a target and press Trace callers.');
+            $('reportStatus').textContent = 'Choose a method or function above and press Trace callers.';
             button.onclick = async () => {
                 if (!names.includes(input.value)) { $('reportStatus').textContent = 'Choose an exact name from the available analysis symbols.'; return; }
                 await replace(D.impact(calls, input.value, depth.value === 'all' ? Infinity : Number(depth.value)));
                 if (!allRows.length) $('reportStatus').textContent = 'No other callers recorded within this distance. This does not prove the target is unused.';
             };
             input.addEventListener('keydown', e => { if (e.key === 'Enter') button.click(); });
+            // change_impact.php?target=Class::method (link from the method detail page) fills the input and traces it
+            const requested = new URLSearchParams(location.search).get('target');
+            if (requested !== null) {
+                input.value = requested;
+                table.on('tableBuilt', () => button.click());
+            }
         } else if (mode === 'state') {
             const rows = D.sharedState(await get('api/globalsReport.php'));
-            const scope = select('Symbols', [['all', 'All tracked shared variables/static members'], ['written', 'With recorded writes'], ['cross', 'Writer and reader in different namespaces']]);
+            const scope = select('Symbols', [['all', 'All global variables and static properties'], ['written', 'With recorded writes'], ['cross', 'Writer and reader in different namespaces']]);
             const sharing = select('Class sharing', [['all', 'All — within and across classes, including functions'], ['same', 'Within one class only'], ['multiple', 'Across more than one class']]);
             const selected = () => rows.filter(r => (scope.value === 'all' || (scope.value === 'cross' ? r.crossNamespace : r.writers > 0)) &&
                 (sharing.value === 'all' || (sharing.value === 'same' ? r.classes === 1 && r.functions === 0 : r.classes > 1)));
-            mount(selected(), [{ ...text('Symbol', 'symbol', 'Known declaration for static members; recorded name for globals.'), formatter: cell => {
+            mount(selected(), [{ ...text('Symbol', 'symbol', 'Class::$property for static properties; the variable name for globals.'), formatter: cell => {
                 const name = cell.getValue();
-                if (cell.getRow().getData().kind !== 'Static member') return document.createTextNode(name);
+                if (cell.getRow().getData().kind !== 'Static property') return document.createTextNode(name);
                 const link = entityLink(name.split('::')[0], 'class'); link.textContent = name; return link;
-            } }, { ...anaCol.list('Kind', 'kind', 'Static member, Global variable, or Superglobal variable.'), formatter: 'plaintext' },
+            } }, { ...anaCol.list('Kind', 'kind', 'Static property, Global variable or Superglobal variable.'), formatter: 'plaintext' },
                 text('Class sharing', 'sharing', 'Based on distinct classes of all recorded readers and writers. Standalone functions are identified separately.'),
                 num('Classes', 'classes', 'Distinct classes reading or writing this symbol.'), num('Functions', 'functions', 'Distinct standalone functions reading or writing this symbol.'),
                 num('Writers', 'writers', 'Distinct methods with Write or Read/Write access.'), num('Readers', 'readers', 'Distinct methods with Read or Read/Write access.'),
-                num('Namespaces', 'namespaces', 'Distinct namespaces accessing the symbol.'), anaCol.flag('Cross-namespace write/read', 'crossNamespace', 'At least one writer and reader belong to different namespaces.'),
+                num('Namespaces', 'namespaces', 'Distinct namespaces accessing the symbol.'), anaCol.flag('Written and read across namespaces', 'crossNamespace', 'A writer and a reader belong to different namespaces.'),
                 linkedColumn('Writer methods', 'writerList', 'Distinct recorded writers.'), linkedColumn('Reader methods', 'readerList', 'Distinct recorded readers.')], [{ column: 'writers', dir: 'desc' }]);
             scope.onchange = () => replace(selected());
             sharing.onchange = () => replace(selected());
         } else if (mode === 'consumers') {
             const [methods, raw] = await Promise.all([get('api/methodSummary.php'), get('api/callGraph.php')]);
-            mount(D.consumers(methods, D.edges(raw)), [method(), text('Namespace', 'namespace', 'Declaring class namespace.'), text('Observed use', 'usage', 'Call-based classification, not an API removal recommendation.'),
+            mount(D.consumers(methods, D.edges(raw)), [method(), namespaceColumn('Declaring class namespace. Click it to open the namespace detail page.'), anaCol.list('Observed use', 'usage', 'Used outside class, Calls only within class, or No recorded calls. Based on recorded calls only; not a reason to remove a method.'),
                 num('Call sites', 'sites', 'Static occurrences, not runtime frequency.'), num('Distinct callers', 'callers', 'Distinct caller methods/functions.'),
                 num('Outside-class callers', 'externalCallers', 'Distinct callers outside this class.'), num('Outside-class owners', 'externalOwners', 'Distinct external classes or individual function callers.'),
                 num('Other namespaces', 'externalNamespaces', 'Distinct consuming namespaces other than the target namespace.')], [{ column: 'externalCallers', dir: 'desc' }]);

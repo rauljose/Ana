@@ -62,12 +62,13 @@ const AnaReportData = (() => {
             const isGlobal = ['Global variable', 'Superglobal variable'].includes(access.symbol_type);
             const isStatic = access.symbol_type === 'Static property' ||
                 (access.symbol_type === 'Inherited member' && access.is_declared_static);
-            if (!isGlobal && !isStatic) continue;
+            // Inherited class constants are stored like static members: leave them out, they cannot change
+            if ((!isGlobal && !isStatic) || access.is_declared_constant) continue;
             // Normalize inherited static access to the known declaration; instance properties are excluded.
             const symbol = isStatic && access.declared_in
-                ? `${access.declared_in}::${access.symbol.replace(/^\$/, '')}` : access.symbol_fqn;
+                ? `${access.declared_in}::$${access.symbol.replace(/^\$/, '')}` : access.symbol_fqn;
             const key = `${isStatic ? 'static' : access.symbol_type}|${symbol}`;
-            if (!groups.has(key)) groups.set(key, { symbol, kind: isStatic ? 'Static member' : access.symbol_type,
+            if (!groups.has(key)) groups.set(key, { symbol, kind: isStatic ? 'Static property' : access.symbol_type,
                 readers: new Set(), writers: new Set(), namespaces: new Set(), classes: new Set(), functions: new Set(), evidence: [] });
             const group = groups.get(key);
             if (access.method_fqn.includes('::')) group.classes.add(access.method_fqn.split('::')[0]);

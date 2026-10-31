@@ -51,10 +51,10 @@
             anaCol.detail('Method', 'method_short_name', 'Method or function name without class or namespace. Click it to open the method detail page.', 'method', 'fqn', { frozen: true }),
             {
                 title: 'Identity', columns: [
-                    anaCol.text('Namespace', 'namespace', 'Namespace of the class, or of the function.'),
-                    anaCol.text('Class', 'class_short_name', 'Class name without namespace. Empty for functions.'),
-                    anaCol.text('Class FQN', 'class_name', 'Fully qualified class name. [Global Scope] for functions.'),
-                    anaCol.text('FQN', 'fqn', 'Fully qualified name: Class::method for methods, the namespaced name for functions. The unique key.'),
+                    anaCol.detail('Namespace', 'namespace', 'Namespace of the class, or of the function. Click it to open the namespace detail page.', 'namespace', 'namespace'),
+                    anaCol.detail('Class', 'class_short_name', 'Class name without namespace. Empty for functions. Click it to open the class detail page.', 'class', 'class_name'),
+                    anaCol.detail('Class FQN', 'class_name', 'Fully qualified class name. [Global Scope] for functions. Click it to open the class detail page.', 'class', 'class_name'),
+                    anaCol.detail('FQN', 'fqn', 'Fully qualified name: Class::method for methods, the namespaced name for functions. The unique key. Click it to open the method detail page.', 'method', 'fqn'),
                     anaCol.list('Kind', 'kind', 'Method, Function (defined in the project) or Native Function (PHP built-in, nothing to measure).'),
                     anaCol.list('Visibility', 'visibility', 'public, protected or private. Public methods are the contract other code relies on.'),
                     anaCol.flag('Static', 'is_static', 'Static method: called on the class, cannot use instance state.'),
@@ -97,8 +97,8 @@
                     anaCol.num('Calls out', 'calls_out_total', 'Calls the method makes (fan-out). High means it depends on a lot of code and breaks easily.'),
                     anaCol.num('Calls out native', 'calls_out_native', 'Of the calls made, how many go to native or global functions.'),
                     anaCol.num('Calls in', 'calls_in_total', 'Calls made to this method (fan-in). High means many places depend on it: change it with care.'),
-                    anaCol.text('Calls out list', 'calls_out_list', 'What this method calls.'),
-                    anaCol.text('Calls in list', 'calls_in_list', 'Who calls this method. Check these before changing it.'),
+                    anaCol.detailList('Calls out list', 'calls_out_list', 'What this method calls. Click a method to open its detail page.', 'method', { itemName: anaCallListName }),
+                    anaCol.detailList('Calls in list', 'calls_in_list', 'Who calls this method. Check these before changing it.', 'method', { itemName: anaCallListName }),
                     anaCol.flag('Unused candidate', 'is_unused_candidate', 'Nothing calls it. Entry points, callbacks, interface methods and dynamic calls also look unused; private ones are almost certainly dead.'),
                 ]
             },
