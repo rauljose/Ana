@@ -63,8 +63,8 @@
             anaCol.detail('Class', 'short_name', 'Class name without namespace. Click it to open the class detail page.', 'class', 'class_name', { frozen: true }),
             {
                 title: 'Identity', columns: [
-                    anaCol.text('Namespace', 'namespace', 'Namespace of the class. Use it to compare or group classes of the same package.'),
-                    anaCol.text('FQN', 'class_name', 'Fully qualified class name, the unique key of the class.'),
+                    anaCol.detail('Namespace', 'namespace', 'Namespace of the class. Click it to open the namespace detail page.', 'namespace', 'namespace'),
+                    anaCol.detail('FQN', 'class_name', 'Fully qualified class name, the unique key of the class. Click it to open the class detail page.', 'class', 'class_name'),
                     anaCol.list('Type', 'type', 'Class, Abstract Class, Final Class, Interface or Trait. Interfaces and traits hold no state of their own, so some metrics mean less for them.'),
                     anaCol.flag('Static class', 'is_static_class', 'True when the class only has static methods. Such a class cannot be substituted or mocked easily, many of them point to procedural code.'),
                     anaCol.flag('Readonly class', 'is_readonly_class', 'Declared readonly: all properties are immutable after construction. Generally a good sign.'),
@@ -73,9 +73,9 @@
             },
             {
                 title: 'Inheritance', columns: [
-                    anaCol.text('Extends', 'extends', 'Parent class. Deep inheritance chains make behaviour hard to follow.'),
-                    anaCol.text('Implements', 'implements', 'Interfaces the class implements. Depending on interfaces instead of classes keeps coupling low.'),
-                    anaCol.text('Uses traits', 'uses_traits', 'Traits mixed into the class. Traits hide dependencies; many of them can mean shared code that should be a class.'),
+                    anaCol.detailList('Extends', 'extends', 'Parent class. Deep inheritance chains make behaviour hard to follow.', 'class'),
+                    anaCol.detailList('Implements', 'implements', 'Interfaces the class implements. Depending on interfaces instead of classes keeps coupling low.', 'class'),
+                    anaCol.detailList('Uses traits', 'uses_traits', 'Traits mixed into the class. Traits hide dependencies; many of them can mean shared code that should be a class.', 'class'),
                     anaCol.num('Children', 'children_count', 'Classes that extend this one. A high number means changes here ripple to many classes.'),
                 ]
             },
@@ -92,7 +92,7 @@
                 title: 'Complexity', columns: [
                     anaCol.num('Cyclo total', 'total_cyclo', 'Sum of the cyclomatic complexity of all methods, the number of independent paths to test. Above about 40 the class is hard to test and understand.'),
                     anaCol.num('Cyclo avg', 'avg_cyclo', 'Average complexity per method. Up to 5 is simple; above 10 means methods that should be split.'),
-                    anaCol.text('Cyclo max method', 'max_cyclo_method', 'Name of the most complex method: where to start refactoring.'),
+                    anaCol.text('Cyclo max method', 'max_cyclo_method', 'Name of the most complex method: where to start refactoring. Click it to open the method detail page.', { formatter: (cell) => anaDetailLink('method', cell.getValue() ? cell.getRow().getData().class_name + '::' + cell.getValue() : '', cell.getValue()) }),
                     anaCol.num('Cyclo max', 'max_cyclo_val', 'Complexity of that method. Over 15 is a refactoring candidate, over 30 is very risky.'),
                     anaCol.num('Cognitive total', 'total_cog', 'Sum of cognitive complexity: how hard the code is to read, nesting counts extra. Higher is worse.'),
                     anaCol.num('Cognitive avg', 'avg_cog', 'Average cognitive complexity per method. Above about 8 the methods are tiring to read.'),
@@ -119,8 +119,8 @@
                     anaCol.num('DAC', 'dac', 'Data abstraction coupling: properties typed with another class. High means the class holds many collaborators.'),
                     anaCol.num('Abstractness', 'abstractness', '1 for interfaces and abstract classes, 0 for concrete ones. Read it together with instability (main sequence).'),
                     anaCol.num('Main seq. distance', 'main_seq_distance', 'Abs(abstractness + instability - 1). Near 0 is balanced. Near 1 is rigid (stable and concrete, painful to change) or useless (unstable and abstract).'),
-                    anaCol.text('Classes used', 'classes_used', 'The classes this class calls.'),
-                    anaCol.text('Classes using this', 'classes_using_this', 'The classes that call this class. Check them before changing it.'),
+                    anaCol.detailList('Classes used', 'classes_used', 'The classes this class calls.', 'class'),
+                    anaCol.detailList('Classes using this', 'classes_using_this', 'The classes that call this class. Check them before changing it.', 'class'),
                 ]
             },
             {

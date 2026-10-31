@@ -37,6 +37,7 @@ $name = $_GET['name'] ?? '';
         a.href = href;
         return a;
     };
+    const namespaceLink = (namespace) => link(`detail.php?type=namespace&name=${encodeURIComponent(namespace)}`, namespace);
     const classLink = (className) => link(`detail.php?type=class&name=${encodeURIComponent(className)}`, className);
     const methodLink = (className, methodName, isNative) => {
         const label = className === '' ? methodName + '()' : className + '::' + methodName + '()';
@@ -52,9 +53,12 @@ $name = $_GET['name'] ?? '';
     };
 
     // columns: [{ title, cell: row => string | Node, num: bool }]
-    const addSection = (title, columns, rows) => {
+    // headingLink: optional node added after the section title
+    const addSection = (title, columns, rows, headingLink) => {
         const box = document.getElementById('sections');
-        box.appendChild(el('h2', `${title} (${rows.length})`));
+        const heading = el('h2', `${title} (${rows.length})`);
+        if (headingLink) heading.append(' ', headingLink);
+        box.appendChild(heading);
         if (rows.length === 0) {
             box.appendChild(el('p', 'None', 'ana-empty'));
             return;
@@ -92,7 +96,8 @@ $name = $_GET['name'] ?? '';
         }
 
         document.getElementById('title').textContent = info.class_name;
-        document.getElementById('subtitle').textContent = `${info.type} in ${info.namespace}`;
+        const subtitle = document.getElementById('subtitle');
+        subtitle.append(`${info.type} in `, namespaceLink(info.namespace));
         const links = document.getElementById('links');
         links.append(
             link(`call_graph.php?level=class&classname=${encodeURIComponent(info.class_name)}`, 'Call graph of this class'),
@@ -157,6 +162,45 @@ $name = $_GET['name'] ?? '';
         ], extra.globals);
     }
 
+    // Namespace page: its classes and functions, and the namespaces it uses and is used by.
+    // The namespace summary rolls up classes by their exact namespace; sub namespaces have their own page
+    async function showNamespace() {
+        const [namespaces, classes, methods] = await Promise.all(
+            ['api/namespaceSummary.php', 'api/classSummary.php', 'api/methodSummary.php'].map(url => fetch(url).then(r => r.json()))
+        );
+        const info = namespaces.find(row => row.namespace === entityName);
+        document.getElementById('title').textContent = entityName;
+        if (!info) {
+            document.getElementById('subtitle').textContent = 'Namespace not found in the analysis.';
+            return;
+        }
+        document.getElementById('subtitle').textContent = 'Namespace';
+        const links = document.getElementById('links');
+        links.append(link(`call_graph.php?level=namespace&namespace=${encodeURIComponent(entityName)}`, 'Call graph of this namespace'));
+
+        [['Classes', info.classes], ['Abstract classes', info.abstract_classes], ['Interfaces', info.interfaces], ['Traits', info.traits],
+         ['Methods', info.methods], ['Cyclomatic total', info.total_cyclo], ['Cyclomatic avg', info.avg_cyclo], ['Cyclomatic max', info.max_cyclo],
+         ['Ca (used by)', info.afferent_ca], ['Ce (uses)', info.efferent_ce], ['Instability', info.instability],
+         ['Calls out', info.calls_out], ['Calls in', info.calls_in]].forEach(([label, value]) => addCard(label, value));
+
+        addSection('Classes, interfaces and traits', [
+            { title: 'Class', cell: row => classLink(row.class_name) },
+            { title: 'Type', cell: row => row.type },
+            { title: 'Methods', cell: row => row.total_methods, num: true },
+            { title: 'Cyclomatic', cell: row => row.total_cyclo, num: true },
+            { title: 'Ca', cell: row => row.afferent_ca, num: true },
+            { title: 'Ce', cell: row => row.efferent_ce, num: true },
+        ], classes.filter(row => row.namespace === entityName).sort((a, b) => b.total_cyclo - a.total_cyclo));
+        addSection('Functions', [
+            { title: 'Function', cell: row => methodLink('', row.fqn, false) },
+            { title: 'Cyclomatic', cell: row => row.cyclo_complexity, num: true },
+            { title: 'Calls in', cell: row => row.calls_in_total, num: true },
+        ], methods.filter(row => row.kind === 'Function' && row.namespace === entityName).sort((a, b) => b.cyclo_complexity - a.cyclo_complexity));
+        const namespaceList = (list) => String(list || '').split(', ').filter(name => name !== '').map(namespace => ({ namespace }));
+        addSection('Namespaces this namespace uses', [{ title: 'Namespace', cell: row => namespaceLink(row.namespace) }], namespaceList(info.namespaces_used));
+        addSection('Namespaces using this namespace', [{ title: 'Namespace', cell: row => namespaceLink(row.namespace) }], namespaceList(info.namespaces_using_this));
+    }
+
     async function showMethod() {
         const extra = await fetch(`api/detail.php?type=method&name=${encodeURIComponent(entityName)}`).then(r => r.json());
         const info = extra.method;
@@ -169,6 +213,9 @@ $name = $_GET['name'] ?? '';
         const isFunction = extra.class_name === '';
         document.getElementById('subtitle').textContent = isFunction ? 'Function' : `${info.visibility}${info.is_static === '1' ? ' static' : ''} method`;
         const links = document.getElementById('links');
+        const nameParts = (isFunction ? entityName : extra.class_name).split('\\');
+        nameParts.pop();
+        links.append(el('span', 'Namespace: '), namespaceLink(nameParts.join('\\') || '[Global]'), el('span', ' '));
         if (!isFunction) links.append(el('span', 'Class: '), classLink(extra.class_name), el('span', ' '));
         links.appendChild(link(`call_graph.php?level=method&method=${encodeURIComponent(entityName)}&depth=2`, 'Call graph of this method'));
 
@@ -192,7 +239,7 @@ $name = $_GET['name'] ?? '';
         addSection('Called by', [
             { title: 'Caller', cell: row => methodLink(row.from_class, row.from_method, false) },
             { title: 'Calls', cell: row => row.calls, num: true }
-        ], extra.calls_in);
+        ], extra.calls_in, link(`change_impact.php?target=${encodeURIComponent(entityName)}`, 'Change impact: all direct and indirect callers'));
         addSection('Property access', [
             { title: 'Property', cell: row => row.property_name }, { title: 'Access', cell: row => accessLabel(row.access_type) }
         ], extra.prop_access);
@@ -204,7 +251,7 @@ $name = $_GET['name'] ?? '';
 
     document.addEventListener('DOMContentLoaded', () => {
         document.title = `${entityName} - Detail`;
-        const load = entityType === 'method' ? showMethod : showClass;
+        const load = { method: showMethod, namespace: showNamespace }[entityType] ?? showClass;
         load().catch(err => {
             console.error(err);
             document.getElementById('subtitle').textContent = 'Failed to load the detail data.';

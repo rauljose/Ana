@@ -21,9 +21,10 @@
     let table, allRows = [];
     const text = (title, field, tip) => anaCol.text(title, field, tip, { formatter: 'plaintext', maxWidth: 440 });
     const num = (title, field, tip) => anaCol.num(title, field, tip);
+    const namespaceColumn = (tip) => anaCol.detail('Namespace', 'namespace', tip, 'namespace', 'namespace', { maxWidth: 440 });
     const method = () => anaCol.detail('Method', 'method', 'Open the stored method detail.', 'method', 'method');
     function entityLink(name, level = 'method') {
-        if (level === 'namespace') return document.createTextNode(name);
+        if (level === 'namespace') return anaDetailLink('namespace', name);
         const link = document.createElement('a');
         const isFunction = name.startsWith('[function] ');
         link.textContent = name;
@@ -145,7 +146,7 @@
             names.forEach(name => choices.append(new Option(name, name))); $('reportControls').append(choices);
             const depth = select('Maximum distance', [['all', 'All reachable callers'], ['1', '1 — direct callers'], ['2', '2'], ['3', '3'], ['5', '5']]);
             const button = document.createElement('button'); button.textContent = 'Trace callers'; $('reportControls').append(button);
-            mount([], [{ ...method(), width: 280 }, { ...text('Namespace', 'namespace', 'Namespace of the caller.'), width: 180 },
+            mount([], [{ ...method(), width: 280 }, { ...namespaceColumn('Namespace of the caller. Click it to open the namespace detail page.'), width: 180 },
                 { ...num('Distance', 'distance', 'Shortest number of call edges to the target.'), width: 100 },
                 { ...text('Relationship', 'relationship', 'Direct or indirect caller.'), width: 140 },
                 { ...linkedColumn('Example path', 'path', 'A shortest recorded caller-to-target path.', ' → '), maxWidth: undefined, minWidth: 240, widthGrow: 1 }], [{ column: 'distance', dir: 'asc' }], 'Choose a target and press Trace callers.');
@@ -156,6 +157,12 @@
                 if (!allRows.length) $('reportStatus').textContent = 'No other callers recorded within this distance. This does not prove the target is unused.';
             };
             input.addEventListener('keydown', e => { if (e.key === 'Enter') button.click(); });
+            // change_impact.php?target=Class::method (link from the method detail page) fills the input and traces it
+            const requested = new URLSearchParams(location.search).get('target');
+            if (requested !== null) {
+                input.value = requested;
+                table.on('tableBuilt', () => button.click());
+            }
         } else if (mode === 'state') {
             const rows = D.sharedState(await get('api/globalsReport.php'));
             const scope = select('Symbols', [['all', 'All global variables and static properties'], ['written', 'With recorded writes'], ['cross', 'Writer and reader in different namespaces']]);
@@ -176,7 +183,7 @@
             sharing.onchange = () => replace(selected());
         } else if (mode === 'consumers') {
             const [methods, raw] = await Promise.all([get('api/methodSummary.php'), get('api/callGraph.php')]);
-            mount(D.consumers(methods, D.edges(raw)), [method(), text('Namespace', 'namespace', 'Declaring class namespace.'), anaCol.list('Observed use', 'usage', 'Used outside class, Calls only within class, or No recorded calls. Based on recorded calls only; not a reason to remove a method.'),
+            mount(D.consumers(methods, D.edges(raw)), [method(), namespaceColumn('Declaring class namespace. Click it to open the namespace detail page.'), anaCol.list('Observed use', 'usage', 'Used outside class, Calls only within class, or No recorded calls. Based on recorded calls only; not a reason to remove a method.'),
                 num('Call sites', 'sites', 'Static occurrences, not runtime frequency.'), num('Distinct callers', 'callers', 'Distinct caller methods/functions.'),
                 num('Outside-class callers', 'externalCallers', 'Distinct callers outside this class.'), num('Outside-class owners', 'externalOwners', 'Distinct external classes or individual function callers.'),
                 num('Other namespaces', 'externalNamespaces', 'Distinct consuming namespaces other than the target namespace.')], [{ column: 'externalCallers', dir: 'desc' }]);

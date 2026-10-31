@@ -88,11 +88,11 @@
             },
             {
                 title: 'Used by', columns: [
-                    anaCol.text('Namespace', 'namespace', 'Namespace of the class or function that uses the symbol.'),
+                    anaCol.detail('Namespace', 'namespace', 'Namespace of the class or function that uses the symbol. Click it to open the namespace detail page.', 'namespace', 'namespace'),
                     anaCol.detail('Class', 'class_short_name', 'Class that uses the symbol. Click for the class detail page. Empty for functions.', 'class', 'class_name'),
-                    anaCol.text('Class FQN', 'class_name', 'Fully qualified name of the class that uses the symbol.'),
+                    anaCol.detail('Class FQN', 'class_name', 'Fully qualified name of the class that uses the symbol. Click it to open the class detail page.', 'class', 'class_name'),
                     anaCol.detail('Method', 'method_short_name', 'Method or function that uses the symbol. Click for the method detail page.', 'method', 'method_fqn'),
-                    anaCol.text('Method FQN', 'method_fqn', 'Fully qualified Class::method, or the function name.'),
+                    anaCol.detail('Method FQN', 'method_fqn', 'Fully qualified Class::method, or the function name. Click it to open the method detail page.', 'method', 'method_fqn'),
                     anaCol.list('Kind', 'kind', 'Method or Function.'),
                 ]
             },

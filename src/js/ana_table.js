@@ -26,6 +26,23 @@ function anaNumericFilter(headerValue, rowValue) {
     }
 }
 
+// Link to detail.php for a project entity. type: 'class', 'method' or 'namespace'.
+// Plain text when there is nothing to open: no name, functions' [Global Scope] class
+function anaDetailLink(type, name, label = name) {
+    if (!name || name === '[Global Scope]') return label;
+    const link = document.createElement('a');
+    link.href = `detail.php?type=${type}&name=${encodeURIComponent(name)}`;
+    link.textContent = label;
+    return link;
+}
+
+// Name of a method in the call lists of the method pages: Class::method(), [Global]::function(), function() [Native/Global].
+// null for native functions, which have no detail page
+function anaCallListName(item) {
+    if (item.endsWith(' [Native/Global]')) return null;
+    return item.replace(/\(\)$/, '').replace(/^\[Global\]::/, '');
+}
+
 // Column definition factories: every column is sortable (Tabulator default) and has a header filter
 const anaCol = {
     text: (title, field, tip, extra = {}) => ({
@@ -49,18 +66,33 @@ const anaCol = {
     rowNumber: () => ({
         title: '#', formatter: 'rownum', hozAlign: 'right', headerSort: false, resizable: false, frozen: true, width: 55
     }),
-    // Name column linking to detail.php. type: 'class' or 'method'; nameField: row field holding the full name
+    // Name column linking to detail.php. type: 'class', 'method' or 'namespace'; nameField: row field holding the full name
     detail: (title, field, tip, type, nameField, extra = {}) => anaCol.text(title, field, tip, {
         formatter: (cell) => {
             const row = cell.getRow().getData();
-            if (row.kind === 'Native Function' || !cell.getValue()) return cell.getValue();
-            const link = document.createElement('a');
-            link.href = `detail.php?type=${type}&name=${encodeURIComponent(row[nameField])}`;
-            link.textContent = cell.getValue();
-            return link;
+            if (row.kind === 'Native Function') return cell.getValue();
+            return anaDetailLink(type, row[nameField], cell.getValue());
         },
         ...extra
     }),
+    // Column holding a list of names, each one linking to detail.php. separator: what splits the list.
+    // extra.itemName: item => full name, or null for an item without a detail page
+    detailList: (title, field, tip, type, extra = {}, separator = ', ') => {
+        const { itemName = (item) => item, ...rest } = extra;
+        return anaCol.text(title, field, tip, {
+            formatter: (cell) => {
+                const box = document.createElement('span');
+                if (separator === '\n') cell.getElement().style.whiteSpace = 'pre-wrap';
+                String(cell.getValue() ?? '').split(separator).filter(item => item !== '').forEach((item, index) => {
+                    if (index > 0) box.append(separator);
+                    const name = itemName(item);
+                    box.append(name === null ? item : anaDetailLink(type, name, item));
+                });
+                return box;
+            },
+            ...rest
+        });
+    },
     list: (title, field, tip, extra = {}) => ({
         title, field, headerTooltip: tip,
         headerFilter: 'list', headerFilterFunc: '=',
