@@ -16,7 +16,7 @@
     <div class="analysis-cards">
         <a href="change_impact.php"><h2>Change impact</h2><p>Choose a method or function. Find recorded direct and indirect callers, with a shortest call path for each.</p></a>
         <a href="shared_state.php"><h2>Shared-state dependencies</h2><p>See which methods write and read each global symbol or static property, across namespaces.</p></a>
-        <a href="api_consumers.php"><h2>Public-method consumers</h2><p>Separate call sites from distinct consumers. Find public methods used inside their class, elsewhere in the project, or with no recorded calls.</p></a>
+        <a href="method_public_consumers.php"><h2>Public-method consumers</h2><p>Separate call sites from distinct consumers. Find public methods used inside their class, elsewhere in the project, or with no recorded calls.</p></a>
         <a href="dependency_cycles.php"><h2>Cycle groups</h2><p>Inspect groups of mutually dependent methods, classes or namespaces, with an example cycle and the recorded edges.</p></a>
     </div>
     <section class="analysis-note"><h2>How to use these reports</h2>

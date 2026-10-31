@@ -21,7 +21,7 @@ if (!isset($analysisReport, $analysisTitles[$analysisReport])) { http_response_c
         <a href="analysis_reports.php">Reports home</a>
         <a href="change_impact.php">Change impact</a>
         <a href="shared_state.php">Shared state</a>
-        <a href="api_consumers.php">Public-method consumers</a>
+        <a href="method_public_consumers.php">Public-method consumers</a>
         <a href="dependency_cycles.php">Cycle groups</a>
     </nav>
     <h1><?= htmlspecialchars($analysisTitles[$analysisReport]) ?></h1>
