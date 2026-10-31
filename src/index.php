@@ -54,8 +54,12 @@ $statLabels = [
     </div>
 <?php endif; ?>
 
+<?php foreach (array_merge([''], $anaGroups) as $group): ?>
+<?php if ($group !== '') : ?>
+    <h2 class="ana-group"><?= htmlspecialchars($group) ?></h2>
+<?php endif; ?>
     <div class="ana-cards">
-<?php foreach ($anaPages as $file => [$label, $description]): ?>
+<?php foreach ($anaPagesIn($group) as $file => [$label, $description]): ?>
 <?php if ($file === 'index.php') continue; ?>
         <a class="ana-card" href="<?= $file ?>">
             <h2><?= htmlspecialchars($label) ?></h2>
@@ -63,6 +67,7 @@ $statLabels = [
         </a>
 <?php endforeach; ?>
     </div>
+<?php endforeach; ?>
 </div>
 </body>
 </html>

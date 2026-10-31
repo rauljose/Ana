@@ -23,10 +23,31 @@ $anaCurrentPage = basename($_SERVER['SCRIPT_NAME']);
         Project: <strong><?= htmlspecialchars($anaProjectName !== '' ? $anaProjectName : 'unknown') ?></strong>
     </span>
     <ul class="ana-menu">
-<?php foreach ($anaPages as $file => $page): ?>
-<?php [$label, $description] = $page; ?>
-<?php if (($page[2] ?? true) === false) continue; ?>
+<?php foreach ($anaPagesIn('') as $file => [$label, $description]): ?>
         <li><a href="<?= $file ?>" title="<?= htmlspecialchars($description) ?>"<?= $file === $anaCurrentPage ? ' class="active"' : '' ?>><?= htmlspecialchars($label) ?></a></li>
+<?php endforeach; ?>
+<?php foreach ($anaGroups as $group): ?>
+        <li>
+            <details class="ana-menu-group<?= isset($anaPagesIn($group)[$anaCurrentPage]) ? ' active' : '' ?>">
+                <summary><?= htmlspecialchars($group) ?></summary>
+                <ul>
+<?php foreach ($anaPagesIn($group) as $file => [$label, $description]): ?>
+                    <li><a href="<?= $file ?>" title="<?= htmlspecialchars($description) ?>"<?= $file === $anaCurrentPage ? ' class="active"' : '' ?>><?= htmlspecialchars($label) ?></a></li>
+<?php endforeach; ?>
+                </ul>
+            </details>
+        </li>
 <?php endforeach; ?>
     </ul>
 </nav>
+<script>
+    // One drop-down open at a time; a click elsewhere or Escape closes it
+    (() => {
+        const groups = [...document.querySelectorAll('.ana-menu-group')];
+        groups.forEach(group => group.addEventListener('toggle', () => {
+            if (group.open) groups.forEach(other => { if (other !== group) other.open = false; });
+        }));
+        document.addEventListener('click', (event) => groups.forEach(group => { if (!group.contains(event.target)) group.open = false; }));
+        document.addEventListener('keydown', (event) => { if (event.key === 'Escape') groups.forEach(group => { group.open = false; }); });
+    })();
+</script>

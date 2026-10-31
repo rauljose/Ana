@@ -31,6 +31,15 @@
 }
 .ana-menu a:hover { color: var(--accent); }
 .ana-menu a.active { color: var(--accent); border-bottom-color: var(--accent); }
+.ana-menu > li { position: relative; }
+.ana-menu-group summary { list-style: none; cursor: pointer; padding: 12px 14px; font-weight: 500; border-bottom: 3px solid transparent; }
+.ana-menu-group summary::-webkit-details-marker { display: none; }
+.ana-menu-group summary::after { content: " \25BE"; font-size: 0.8em; }
+.ana-menu-group summary:hover, .ana-menu-group[open] summary, .ana-menu-group.active summary { color: var(--accent); }
+.ana-menu-group.active summary { border-bottom-color: var(--accent); }
+.ana-menu-group > ul { position: absolute; z-index: 200; top: 100%; left: 0; min-width: 200px; margin: 0; padding: 4px 0; list-style: none; background: var(--panel-bg); border: 1px solid var(--border-color); border-radius: 0 0 6px 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+.ana-menu-group > ul a { padding: 8px 14px; border-bottom: 0; white-space: nowrap; }
+.ana-menu-group > ul a.active { background: var(--bg-color); }
 
 /* --- Tabulator pages --- */
 body.ana-table-page {
@@ -103,6 +112,7 @@ body.ana-index-page, body.ana-review-page {
 .ana-card:hover { border-color: var(--accent); }
 .ana-card h2 { margin: 0 0 6px; font-size: 1.05rem; color: var(--accent); }
 .ana-card p { margin: 0; font-size: 0.9rem; color: #495057; }
+.ana-index h2.ana-group { margin: 0 0 10px; font-size: 1.1rem; padding-bottom: 4px; border-bottom: 2px solid var(--accent); }
 .ana-index .ana-error { color: #dc3545; }
 
 /* --- Presets --- */
