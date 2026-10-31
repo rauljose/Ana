@@ -6,6 +6,7 @@
     <title>Review</title>
     <link rel="stylesheet" href="css/ana.css">
     <?php require __DIR__ . '/partials/tabulator_head.php'; ?>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
 </head>
 <body class="ana-review-page">
 
@@ -41,6 +42,21 @@
         <p class="ana-why">Static properties that a method writes: state shared by the whole process, changed by whoever runs. A property written through a subclass or a using class is attributed to the class that declares it. Filter the "Written in own class" and "Written in other classes" columns: tick shows only those, cross excludes them.</p>
         <div class="ana-thresholds" id="staticWritesInputs"></div>
         <div id="staticWritesTable"></div>
+    </section>
+
+    <section id="errorHandlers">
+        <h2>Shutdown functions and error handlers registered</h2>
+        <p class="ana-why">Methods and functions that call <code>register_shutdown_function()</code> or <code>set_error_handler()</code>: code that runs at the end of the request or takes over PHP's error reporting. Only calls made inside a method or function are found; calls in a script's top level code are not stored.</p>
+        <div class="ana-thresholds" id="errorHandlersInputs"></div>
+        <div id="errorHandlersTable"></div>
+    </section>
+
+    <section id="stateSymbols">
+        <h2>Global state: variables, superglobals, constants and public members</h2>
+        <p class="ana-why">Global variables, superglobals, project constants, and public properties and class constants (static or not) that a method reads or writes. Read by and Written by list the methods. Only access through <code>$this</code>, <code>self</code> and <code>static</code> is stored, so a member used only from other classes (<code>$object->name</code>, <code>Other::NAME</code>) does not show. Type is the declared type hint; superglobals are always arrays; the comment is the doc block of the declaration. The graph shows the rows the grid shows now (the first 40 by number of methods): blue lines read, red lines write.</p>
+        <div class="ana-thresholds" id="stateSymbolsInputs"></div>
+        <div id="stateSymbolsTable"></div>
+        <div id="stateSymbolsGraph" style="height: 560px; margin-top: 12px; background: var(--panel-bg); border: 1px solid var(--border-color); border-radius: 6px;"></div>
     </section>
 
     <section id="sensitiveMethods">
@@ -124,6 +140,75 @@
         return globals
             .filter(row => row.symbol_type === 'Static property' || (row.symbol_type === 'Inherited member' && row.is_declared_static))
             .map(row => ({ ...row, symbol_type: 'Static property', symbol_fqn: row.declared_in + '::$' + row.symbol.replace(/^\$/, '') }));
+    }
+
+    // One row per global variable, superglobal, project constant and public property or class constant (static or not)
+    function stateSymbols(globals) {
+        const memberKind = (row) => row.is_declared_constant ? 'Public class constant' : (row.is_declared_static ? 'Public static property' : 'Public property');
+        const isWanted = (row) => ['Global variable', 'Superglobal variable'].includes(row.symbol_type)
+            || (row.symbol_type === 'Constant' && !row.is_native)
+            || (row.visibility === 'public' && row.declared_in !== '');
+        const bySymbol = new Map();
+        globals.filter(isWanted).forEach(row => {
+            const isMember = row.visibility !== undefined && row.visibility !== null;
+            const key = isMember ? row.declared_in + '::' + (row.is_declared_constant ? '' : '$') + row.symbol.replace(/^\$/, '') : row.symbol_fqn;
+            const symbol = bySymbol.get(key) ?? {
+                symbol: key,
+                symbol_kind: isMember ? memberKind(row) : row.symbol_type,
+                type_hint: row.type_hint ?? '',
+                doc_comment: row.doc_comment ?? '',
+                readers: new Set(),
+                writers: new Set(),
+            };
+            if (row.access !== 'Write') symbol.readers.add(row.method_fqn);
+            if (row.access !== 'Read') symbol.writers.add(row.method_fqn);
+            bySymbol.set(key, symbol);
+        });
+        return [...bySymbol.values()].map(symbol => ({
+            symbol: symbol.symbol,
+            symbol_kind: symbol.symbol_kind,
+            type_hint: symbol.type_hint,
+            doc_comment: symbol.doc_comment,
+            reader_count: symbol.readers.size,
+            reader_list: [...symbol.readers].sort().join('\n'),
+            writer_count: symbol.writers.size,
+            writer_list: [...symbol.writers].sort().join('\n'),
+        }));
+    }
+
+    // Graph of the symbols in the grid: symbols and the methods reading (blue) or writing (red) them
+    const graphSymbolLimit = 40;
+    let stateGraph = null;
+
+    function renderStateGraph(rows) {
+        if (stateGraph === null) stateGraph = echarts.init(document.getElementById('stateSymbolsGraph'));
+        const shown = [...rows]
+            .sort((a, b) => (b.reader_count + b.writer_count) - (a.reader_count + a.writer_count))
+            .slice(0, graphSymbolLimit);
+        const categories = [...new Set(shown.map(row => row.symbol_kind))].concat('Method');
+        const nodes = new Map();
+        const links = [];
+        const split = (list) => list === '' ? [] : list.split('\n');
+        const addMethod = (name) => { if (!nodes.has(name)) nodes.set(name, { id: name, name, category: categories.length - 1, symbolSize: 8 }); };
+        shown.forEach(row => {
+            nodes.set(row.symbol, { id: row.symbol, name: row.symbol, category: categories.indexOf(row.symbol_kind), symbolSize: 14 + 3 * Math.min(row.reader_count + row.writer_count, 8) });
+            split(row.reader_list).forEach(method => { addMethod(method); links.push({ source: method, target: row.symbol, lineStyle: { color: '#0d6efd' } }); });
+            split(row.writer_list).forEach(method => { addMethod(method); links.push({ source: method, target: row.symbol, lineStyle: { color: '#dc3545' } }); });
+        });
+        stateGraph.setOption({
+            toolbox: { feature: { saveAsImage: { name: 'global_state', title: 'Download Image' } } },
+            tooltip: { formatter: (param) => param.dataType === 'node' ? param.data.name : '' },
+            legend: { bottom: 0, data: categories },
+            series: [{
+                type: 'graph', layout: 'force', roam: true, draggable: true,
+                label: { show: true, position: 'right', fontSize: 10 },
+                edgeSymbol: ['none', 'arrow'], edgeSymbolSize: 6,
+                force: { repulsion: 120, edgeLength: [40, 120] },
+                categories: categories.map(name => ({ name })),
+                data: [...nodes.values()],
+                links,
+            }],
+        }, true);
     }
 
     // Sensitive parameters read from the printed signature: #[SensitiveParameter] [modifiers] [type] [&|...]$name
@@ -225,6 +310,33 @@
                 anaCol.num('Writers', 'writer_count', 'Methods that write the property.'),
                 anaCol.text('Writing methods', 'writer_list', 'The methods that write the property.'),
                 anaCol.num('Methods using it', 'user_count', 'Methods reading or writing the property.'),
+            ],
+        },
+        {
+            id: 'errorHandlers', label: 'Shutdown functions and error handlers registered', sort: [{ column: 'handler_function', dir: 'asc' }, { column: 'method_fqn', dir: 'asc' }], inputs: [],
+            rows: () => data.handlers,
+            columns: [
+                anaCol.rowNumber(),
+                anaCol.list('Registers', 'handler_function', 'register_shutdown_function (runs when the script ends) or set_error_handler (takes over PHP errors).'),
+                anaCol.detail('Method', 'method_fqn', 'Method or function that makes the call. Click for the method detail page.', 'method', 'method_fqn'),
+                anaCol.text('Namespace', 'namespace', 'Namespace of the class or function.'),
+                anaCol.list('Kind', 'kind', 'Method or Function.'),
+                anaCol.num('Calls', 'call_count', 'Times the method makes the call.'),
+            ],
+        },
+        {
+            id: 'stateSymbols', label: 'Global state: variables, superglobals, constants and public members', sort: [{ column: 'writer_count', dir: 'desc' }, { column: 'reader_count', dir: 'desc' }], inputs: [], hasGraph: true,
+            rows: () => stateSymbols(data.globals),
+            columns: [
+                anaCol.rowNumber(),
+                anaCol.text('Symbol', 'symbol', 'Global variable, superglobal, constant, Class::$property or Class::CONSTANT.'),
+                anaCol.list('Kind', 'symbol_kind', 'Global variable, Superglobal variable, Constant, Public property, Public static property or Public class constant.'),
+                anaCol.text('Type', 'type_hint', 'Declared type hint of the property. Superglobals are arrays. Empty when none is declared or stored.'),
+                anaCol.num('Readers', 'reader_count', 'Methods and functions that read it.'),
+                anaCol.num('Writers', 'writer_count', 'Methods and functions that write it.'),
+                anaCol.text('Read by', 'reader_list', 'The methods and functions that read it.', { formatter: 'textarea' }),
+                anaCol.text('Written by', 'writer_list', 'The methods and functions that write it.', { formatter: 'textarea' }),
+                anaCol.text('Comment', 'doc_comment', 'Doc comment of the declaration.', { formatter: 'textarea', width: 420 }),
             ],
         },
         {
@@ -361,19 +473,24 @@
         });
     }
 
+    // Every column has a fixed width, so columns keep their place when the rows are filtered or sorted
+    const columnWidths = { symbol: 320, fqn: 380, method_fqn: 380, writer_list: 380, reader_list: 380, namespace_list: 300, namespaces_using_this: 300, sensitive_parameters: 260, signature: 520, doc_comment: 520 };
+    const fixedWidth = (column) => ({ width: columnWidths[column.field] ?? (column.sorter === 'number' ? 110 : 200), ...column });
+
     function buildTables() {
         listDefinitions.forEach(definition => {
             const section = { built: false, pending: null, table: null };
             sections[definition.id] = section;
             section.table = new Tabulator('#' + definition.id + 'Table', {
                 data: [],
-                layout: 'fitDataFill',
+                layout: 'fitData',
                 maxHeight: '420px',
                 movableColumns: true,
                 placeholder: 'Nothing at or above the thresholds',
                 initialSort: definition.sort,
-                columns: definition.columns,
+                columns: definition.columns.map(fixedWidth),
             });
+            if (definition.hasGraph) section.table.on('renderComplete', () => renderStateGraph(section.table.getData('active')));
             section.table.on('tableBuilt', () => {
                 section.built = true;
                 if (section.pending) section.table.replaceData(section.pending);
@@ -383,10 +500,10 @@
 
     async function load() {
         const status = document.getElementById('reviewStatus');
-        const [globals, methods, namespaces] = await Promise.all(
-            ['api/globalsReport.php', 'api/methodSummary.php', 'api/namespaceSummary.php'].map(url => fetch(url).then(response => response.json()))
+        const [globals, methods, namespaces, handlers] = await Promise.all(
+            ['api/globalsReport.php', 'api/methodSummary.php', 'api/namespaceSummary.php', 'api/handlersReport.php'].map(url => fetch(url).then(response => response.json()))
         );
-        data = { globals, methods, namespaces };
+        data = { globals, methods, namespaces, handlers };
         fillNamespacePicker();
 
         // Saved settings are optional: without the user_settings table the defaults stay

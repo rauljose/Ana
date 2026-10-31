@@ -61,6 +61,9 @@ while ($row = $res->fetch_assoc()) {
         'symbol_type' => $symbolType,
         'is_native' => $isNative,
         'is_own_class' => false,
+        // Superglobals are always arrays; a global variable or constant has no declared type
+        'type_hint' => $row['global_type'] === 'SUPERGLOBAL' ? 'array' : null,
+        'doc_comment' => null,
         'symbol' => $symbol,
         'symbol_fqn' => $symbol,
         'access' => accessLabel($row['access']),
@@ -80,9 +83,11 @@ while ($row = $res->fetch_assoc()) {
     $parents[$row['source_class']][] = $row['target_class'];
 }
 $declared = [];
-$res = $mysqli->query("SELECT class_name, property_name, is_static FROM properties");
+$declarations = [];
+$res = $mysqli->query("SELECT class_name, property_name, visibility, is_static, is_constant, type_hint, doc_comment FROM properties");
 while ($row = $res->fetch_assoc()) {
     $declared[$row['class_name'] . '::' . $row['property_name']] = (int) $row['is_static'] === 1;
+    $declarations[$row['class_name'] . '::' . $row['property_name']] = $row;
 }
 
 function declaringClass(string $className, string $name, array $parents, array $declared): ?string
@@ -126,6 +131,7 @@ while ($row = $res->fetch_assoc()) {
     // declared_in: the class declaring the member, found up the chain for inherited ones; '' when unknown
     $declaredIn = $row['declared_id'] !== null ? $row['class_name'] : (declaringClass($row['class_name'], $name, $parents, $declared) ?? '');
     $isDeclaredStatic = $declaredIn !== '' && $declared[$declaredIn . '::' . $name];
+    $declaration = $declaredIn !== '' ? $declarations[$declaredIn . '::' . $name] : null;
 
     $report[] = [
         'symbol_type' => $symbolType,
@@ -133,6 +139,10 @@ while ($row = $res->fetch_assoc()) {
         'declared_in' => $declaredIn,
         'is_declared_static' => $isDeclaredStatic,
         'is_own_class' => $row['declared_id'] !== null,
+        'visibility' => $declaration['visibility'] ?? null,
+        'is_declared_constant' => (int) ($declaration['is_constant'] ?? 0) === 1,
+        'type_hint' => $declaration['type_hint'] ?? null,
+        'doc_comment' => $declaration['doc_comment'] ?? null,
         'symbol' => $symbol,
         'symbol_fqn' => $symbolFqn,
         'access' => accessLabel($row['access_type']),
