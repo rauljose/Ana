@@ -237,6 +237,12 @@ $depth = (int) ($_REQUEST['depth'] ?? 1);
         <div class="chart-wrapper">
             <h2>Call Graph</h2>
             <div id="radarMessage" class="sys-message"></div>
+            <div class="ana-graph-tools">
+                <button id="graphSpread" title="Push the nodes further apart. Each click spreads them more; it also releases held nodes">Spread</button>
+                <button id="graphTighten" title="Back to the default spacing">Default spacing</button>
+                <label title="After you drop a node, every node stays where it is. Untick to let the layout move again"><input type="checkbox" id="graphHold"> Hold dropped nodes</label>
+                <button id="graphMaximize" title="Use the whole window. Escape goes back">Maximize</button>
+            </div>
             <div id="graphChart" class="chart-canvas" style="min-height: 650px;"></div>
         </div>
     </div>
@@ -273,6 +279,7 @@ $depth = (int) ($_REQUEST['depth'] ?? 1);
     const MAX_EDGES = 1500;
 
     let graphInstance = null;
+    let forceTools = null;
     let edges = [];
     let methodInfo = new Map();
     let nsWidget = null;
@@ -307,6 +314,8 @@ $depth = (int) ($_REQUEST['depth'] ?? 1);
     document.addEventListener('DOMContentLoaded', () => {
         graphInstance = echarts.init(document.getElementById('graphChart'));
         window.addEventListener('resize', () => graphInstance.resize());
+        forceTools = anaForceGraphTools(graphInstance, { spread: 'graphSpread', tighten: 'graphTighten', hold: 'graphHold' });
+        anaInitMaximize(document.querySelector('.chart-wrapper'), document.getElementById('graphMaximize'), graphInstance);
 
         document.getElementById('selLevel').value = <?= json_encode($level) ?>;
         document.getElementById('selScope').value = <?= json_encode($scope) ?>;
@@ -517,7 +526,7 @@ $depth = (int) ($_REQUEST['depth'] ?? 1);
                 edgeSymbol: ['none', 'arrow'],
                 edgeSymbolSize: 8,
                 categories: namespaces.map(ns => ({ name: ns })),
-                force: { repulsion: 220, edgeLength: [60, 180], gravity: 0.08 },
+                force: forceTools.force({ repulsion: 220, edgeLength: [60, 180], gravity: 0.08 }),
                 label: { show: true, position: 'right', formatter: param => shortLabel(level, param.data.node.key) + (param.data.node.selfCalls > 0 ? ' \u21BB' + param.data.node.selfCalls : ''), fontSize: 11 },
                 emphasis: { focus: 'adjacency' },
                 lineStyle: { opacity: 0.7, curveness: 0.15 },
@@ -539,6 +548,7 @@ $depth = (int) ($_REQUEST['depth'] ?? 1);
                 }))
             }]
         };
+        forceTools.setNodes(option.series[0].data);
         graphInstance.setOption(option, true);
     }
 </script>

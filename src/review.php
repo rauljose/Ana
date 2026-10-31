@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="css/ana.css">
     <?php require __DIR__ . '/partials/tabulator_head.php'; ?>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+    <script src="js/ana_graph.js"></script>
 </head>
 <body class="ana-review-page">
 
@@ -186,16 +187,10 @@
 
     // Graph of the symbols in the grid: symbols and the methods reading (blue) or writing (red) them
     const graphSymbolLimit = 40;
-    const graphSpacing = { repulsion: 120, edgeLength: [40, 120], step: 1.5 };
     let stateGraph = null;
-    let graphScale = 1;
-    let graphNodes = [];
-    let heldNodes = new Map();
+    let graphTools = null;
 
     function renderStateGraph(rows) {
-        if (stateGraph === null) stateGraph = echarts.init(document.getElementById('stateSymbolsGraph'));
-        // New rows (a filter changed) start a new layout
-        heldNodes = new Map();
         const shown = [...rows]
             .sort((a, b) => (b.reader_count + b.writer_count) - (a.reader_count + a.writer_count))
             .slice(0, graphSymbolLimit);
@@ -209,7 +204,8 @@
             split(row.reader_list).forEach(method => { addMethod(method); links.push({ source: method, target: row.symbol, lineStyle: { color: '#0d6efd' } }); });
             split(row.writer_list).forEach(method => { addMethod(method); links.push({ source: method, target: row.symbol, lineStyle: { color: '#dc3545' } }); });
         });
-        graphNodes = [...nodes.values()];
+        const graphNodes = [...nodes.values()];
+        graphTools.setNodes(graphNodes);
         stateGraph.setOption({
             toolbox: { feature: { saveAsImage: { name: 'global_state', title: 'Download Image' } } },
             tooltip: { formatter: (param) => param.dataType === 'node' ? param.data.name : '' },
@@ -218,7 +214,7 @@
                 type: 'graph', layout: 'force', roam: true, draggable: true,
                 label: { show: true, position: 'right', fontSize: 10 },
                 edgeSymbol: ['none', 'arrow'], edgeSymbolSize: 6,
-                force: graphForce(),
+                force: graphTools.force({ repulsion: 120, edgeLength: [40, 120] }),
                 categories: categories.map(name => ({ name })),
                 data: graphNodes,
                 links,
@@ -226,52 +222,11 @@
         }, true);
     }
 
-    const graphForce = () => ({ repulsion: graphSpacing.repulsion * graphScale, edgeLength: graphSpacing.edgeLength.map(length => length * graphScale) });
-
-    // Spread: more repulsion and longer edges, with every node free to move again
-    function releaseGraphNodes() {
-        if (graphNodes.length === 0) return;
-        heldNodes = new Map();
-        document.getElementById('graphHold').checked = false;
-        stateGraph.setOption({ series: [{ force: graphForce(), data: graphNodes.map(node => ({ ...node, fixed: false })) }] });
-    }
-
-    // Hold: after a drop, the position of every node is kept and fixed
-    function holdGraphNodes() {
-        if (graphNodes.length === 0) return;
-        const data = stateGraph.getModel().getSeriesByIndex(0).getData();
-        graphNodes.forEach((node, index) => {
-            const [x, y] = data.getItemLayout(index);
-            heldNodes.set(node.id, { x, y });
-        });
-        stateGraph.setOption({ series: [{ data: graphNodes.map(node => ({ ...node, ...heldNodes.get(node.id), fixed: true })) }] });
-    }
-
     function initGraphTools() {
-        const box = document.getElementById('stateSymbolsGraphBox');
-        const maximize = document.getElementById('graphMaximize');
-        const graph = () => stateGraph ?? (stateGraph = echarts.init(document.getElementById('stateSymbolsGraph')));
-        const setMaximized = (isMaximized) => {
-            box.classList.toggle('ana-graph-maximized', isMaximized);
-            maximize.textContent = isMaximized ? 'Restore' : 'Maximize';
-            graph().resize();
-        };
-
-        document.getElementById('graphSpread').addEventListener('click', () => { graphScale *= graphSpacing.step; releaseGraphNodes(); });
-        document.getElementById('graphTighten').addEventListener('click', () => { graphScale = 1; releaseGraphNodes(); });
-        maximize.addEventListener('click', () => setMaximized(!box.classList.contains('ana-graph-maximized')));
-        document.addEventListener('keydown', (event) => {
-            if (event.key === 'Escape' && box.classList.contains('ana-graph-maximized')) setMaximized(false);
-        });
-        window.addEventListener('resize', () => graph().resize());
-
-        // ECharts frees a dropped node; when Hold is ticked the drop pins every node where it is
-        graph().getZr().on('mouseup', () => {
-            if (document.getElementById('graphHold').checked) setTimeout(holdGraphNodes, 0);
-        });
-        document.getElementById('graphHold').addEventListener('change', (event) => {
-            if (!event.target.checked) releaseGraphNodes();
-        });
+        stateGraph = echarts.init(document.getElementById('stateSymbolsGraph'));
+        graphTools = anaForceGraphTools(stateGraph, { spread: 'graphSpread', tighten: 'graphTighten', hold: 'graphHold' });
+        anaInitMaximize(document.getElementById('stateSymbolsGraphBox'), document.getElementById('graphMaximize'), stateGraph);
+        window.addEventListener('resize', () => stateGraph.resize());
     }
 
     // Sensitive parameters read from the printed signature: #[SensitiveParameter] [modifiers] [type] [&|...]$name

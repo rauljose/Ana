@@ -187,6 +187,6 @@ body.ana-index-page, body.ana-review-page {
 .ana-graph-tools { display: flex; gap: 12px; align-items: center; padding: 6px 10px; border-bottom: 1px solid var(--border-color); font-size: 0.85rem; }
 .ana-graph-tools button { padding: 4px 12px; border: 1px solid var(--border-color); border-radius: 4px; background: var(--panel-bg); cursor: pointer; }
 .ana-graph-tools button:hover { background: var(--bg-color); }
-.ana-graph-tools #graphMaximize { margin-left: auto; }
+.ana-graph-tools button:last-child { margin-left: auto; }
 .ana-graph-canvas { flex: 1; min-height: 0; }
-.ana-graph-box.ana-graph-maximized { position: fixed; inset: 0; z-index: 1000; height: auto; margin: 0; border-radius: 0; }
+.ana-graph-maximized { position: fixed; inset: 0; z-index: 1000; height: auto; margin: 0; border-radius: 0; background: var(--panel-bg); }
