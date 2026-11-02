@@ -12,7 +12,7 @@ Runs inside `phpstan analyse` and stores what it finds about the analyzed projec
 
 ## Wire it
 
-Register the collectors and the rule as services in `phpstan.neon` (see the one in the project root) and set `anaProjectName`. Create the tables first with `php src/PHPStan/create_db.php`. Credentials are in `src/config/config.php`.
+Register the collectors and the rule as services in `phpstan.neon` (see the one in the project root) and set `anaProjectName`. The database and tables are created on the first connection (`db/ensure_schema.php`); `php src/PHPStan/create_db.php` starts them over. Credentials are in `src/config/config.php`.
 
 ## Notes
 

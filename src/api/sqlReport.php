@@ -25,7 +25,7 @@ try {
         ] + usedBy($row['class_name'], $row['method_name']);
     }
 } catch (mysqli_sql_exception $e) {
-    // Database analyzed before the SQL was recorded: no rows, run db/db_schema.sql and the analysis again
+    // Database analyzed before the SQL was recorded: no rows, run the analysis again
 }
 
 echo json_encode($report);

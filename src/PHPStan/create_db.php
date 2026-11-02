@@ -1,15 +1,12 @@
 <?php declare(strict_types=1);
 
-// Creates the database and runs db/db_schema.sql, the single source of truth for the tables,
-// then db/default_layouts.sql. Credentials are in config/config.php
-define('ANA_CREATE_DATABASE', true);
+// Starts the analysis tables over: runs db/db_schema.sql, the single source of truth for the tables, which drops and
+// creates them again. Not needed to install: config/config.php creates what is missing. Use it after a table changed
+// (a new column), or to wipe a previous analysis. Credentials are in config/config.php
 $mysqli = require __DIR__ . '/../config/config.php';
 
 try {
-    $mysqli->multi_query(
-        file_get_contents(__DIR__ . '/../db/db_schema.sql') . "\n" .
-        file_get_contents(__DIR__ . '/../db/default_layouts.sql')
-    );
+    $mysqli->multi_query(file_get_contents(__DIR__ . '/../db/db_schema.sql'));
     while ($mysqli->more_results()) {
         $mysqli->next_result();
     }

@@ -9,8 +9,8 @@ Needs PHP 8.4+, `ext-mysqli`, MySQL 8, [PHPStan](https://phpstan.org) 2.3+.
 ## Setup
 
 1. `composer install`
-2. Set the MySQL credentials in `src/config/config.php`.
-3. Create the database: `php src/PHPStan/create_db.php` (or run `src/db/db_schema.sql`). Run it again to wipe a previous analysis; saved layouts and settings are kept.
+2. Set the MySQL credentials in `src/config/config.php`. The database and its tables are created the first time a page, an API or the analysis connects, and any table a later update adds is created the same way: nothing to install by hand. Existing tables and their data are never touched.
+3. `php src/PHPStan/create_db.php` starts the analysis tables over (after a table gained a column, or to wipe a previous analysis); saved layouts and settings are kept.
 4. In `phpstan.neon` set `anaProjectName`, `paths` (the code to analyze) and `bootstrapFiles` (its autoloader).
 
 ## Run
@@ -48,7 +48,7 @@ Every class, method and namespace name links to its detail page (`detail.php`). 
 
 ## SQL
 
-The plugin also reads the SQL a method holds, in string literals, concatenations of literals and class constants, heredocs and interpolated strings, and the Sqler `insert()`, `update()` and `junctionTable()` helpers. It records SELECT, INSERT, UPDATE, DELETE, REPLACE, TRUNCATE, CALL and CREATE, ALTER, DROP, RENAME by table or procedure (a table named by a variable shows as `?`). The text is read, not run or fully parsed, and it counts for the method that holds it. The helper names are in `src/PHPStan/SqlUsageFinder.php`. A database analyzed before this needs `db/db_schema.sql` run again.
+The plugin also reads the SQL a method holds, in string literals, concatenations of literals and class constants, heredocs and interpolated strings, and the Sqler `insert()`, `update()` and `junctionTable()` helpers. It records SELECT, INSERT, UPDATE, DELETE, REPLACE, TRUNCATE, CALL and CREATE, ALTER, DROP, RENAME by table or procedure (a table named by a variable shows as `?`). The text is read, not run or fully parsed, and it counts for the method that holds it. The helper names are in `src/PHPStan/SqlUsageFinder.php`. A database analyzed before this only needs the analysis run again: the `method_sql` table is created when missing.
 
 ## Limits
 
