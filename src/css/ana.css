@@ -129,6 +129,9 @@ body.ana-index-page, body.ana-review-page {
 .ana-groups-flexbox { display: flex; flex-wrap: wrap; gap: 28px 20px; align-items: flex-start; }
 .ana-group-item { flex: 0 1 380px; max-width: 320px; box-sizing: border-box; }
 .ana-group-item .ana-cards { display: flex; flex-direction: column; gap: 14px; }
+.ana-group-item .ana-card { cursor: pointer; }
+.ana-group-item .ana-card p { cursor: text; }
+.ana-group-item .ana-card h2 a { color: inherit; text-decoration: inherit; }
 .ana-index .ana-error { color: #dc3545; }
 
 /* --- Presets --- */

@@ -94,15 +94,22 @@ $statItems = [
             <h2 class="ana-group"><?= htmlspecialchars($group) ?></h2>
             <div class="ana-cards">
 <?php foreach ($anaPagesIn($group) as $file => [$label, $description]): ?>
-                <a class="ana-card" href="<?= $file ?>">
-                    <h2><?= htmlspecialchars($label) ?></h2>
+                <div class="ana-card">
+                    <h2><a href="<?= $file ?>"><?= htmlspecialchars($label) ?></a></h2>
                     <p><?= htmlspecialchars($description) ?></p>
-                </a>
+                </div>
 <?php endforeach; ?>
             </div>
         </section>
 <?php endforeach; ?>
     </div>
 </div>
+<script>
+    // A card opens its page when clicked, except on its description: that text can be selected and copied
+    document.querySelectorAll('.ana-group-item .ana-card').forEach(card => card.addEventListener('click', (event) => {
+        if (event.target.closest('a, p') || window.getSelection().toString() !== '') return;
+        card.querySelector('a').click();
+    }));
+</script>
 </body>
 </html>
