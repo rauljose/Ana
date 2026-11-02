@@ -38,7 +38,7 @@ Then serve `src/` with Apache or `php -S localhost:8000 -t src` and open `index.
 | Classes | Class Metrics, Class Graphs | Every class metric; Zone of Pain and health radar |
 | Methods | Method Metrics, Method Graphs, Public Method Consumers, Change Impact | Every method metric; hotspots; who uses each public method; callers of a method |
 | State | Globals Report, Method Globals, Shared State | Globals, superglobals, constants and static properties, and who reads or writes them |
-| Dependencies | Call Graph, Dependency Cycles | Calls between namespaces, classes or methods; groups that depend on each other |
+| Dependencies | Call Graph, Dependency Matrix, Dependency Cycles | Calls between namespaces, classes or methods; the same as a matrix, for a focus, with cycles and heavy dependencies in color; groups that depend on each other |
 
 Every class, method and namespace name links to its detail page (`detail.php`). Tables can be filtered, sorted, exported to CSV, and their column layouts saved.
 
