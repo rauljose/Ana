@@ -45,4 +45,3 @@ Every class, method and namespace name links to its detail page (`detail.php`). 
 - Calls are recorded against the class of the variable they were made on, so methods called through an interface or a parent class can look unused.
 - Properties are tracked only through `$this`, `self::` and `static::`.
 - Calls outside any method or function, dynamic calls and callbacks by name are not recorded.
-- Analyzing again without re-creating the database can keep classes and methods deleted since.

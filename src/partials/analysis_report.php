@@ -30,7 +30,7 @@ $analysisTitle = $anaPages[basename($_SERVER['SCRIPT_NAME'])][0];
     <div id="reportTable"></div>
     <section class="analysis-evidence" id="reportEvidence" aria-live="polite"><h2>Evidence</h2><p>Select a row to inspect its recorded relationships.</p></section>
     <section class="analysis-note"><h2>Interpretation</h2><div id="reportNotes"></div>
-        <p>Everything here comes from the stored analysis, not from running the code. Calls are places in the source that call something, not how often they run. Dynamic calls (<code>$object->$name()</code>, callbacks by name) and code outside any method or function are not recorded. If you analyzed again without re-creating the database, classes and methods deleted since may still be listed.</p>
+        <p>Everything here comes from the stored analysis, not from running the code. Calls are places in the source that call something, not how often they run. Dynamic calls (<code>$object->$name()</code>, callbacks by name) and code outside any method or function are not recorded.</p>
     </section>
 </main>
 <script src="js/analysis_reports.js"></script>
