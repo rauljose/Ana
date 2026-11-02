@@ -21,20 +21,40 @@ try {
             (SELECT COUNT(*) FROM methods WHERE class_name != '') AS methods,
             (SELECT COUNT(*) FROM methods WHERE class_name = '' AND is_builtin = 0) AS functions,
             (SELECT COUNT(*) FROM calls) AS calls,
-            (SELECT ROUND(AVG(cyclo_complexity), 2) FROM methods WHERE is_builtin = 0) AS avg_cyclo
+            (SELECT ROUND(AVG(cyclo_complexity), 2) FROM methods WHERE is_builtin = 0) AS avg_cyclo,
+            (SELECT ROUND(AVG(cognitive_complexity), 2) FROM methods WHERE is_builtin = 0) AS avg_cognitive
     ");
     $stats = $res->fetch_assoc();
+
+    // Namespaces are the classes' namespaces, the same rows as the Namespace Metrics page
+    $namespaces = [];
+    foreach ($mysqli->query("SELECT class_name FROM classes")->fetch_all(MYSQLI_NUM) as [$className]) {
+        $parts = explode('\\', $className);
+        array_pop($parts);
+        $namespaces[implode('\\', $parts) ?: '[Global]'] = true;
+    }
+    $stats['namespaces'] = count($namespaces);
+
+    // The most complex method by each measure, for the complexity cards
+    foreach (['cyclo_complexity' => 'cyclo', 'cognitive_complexity' => 'cognitive'] as $column => $key) {
+        $max = $mysqli->query("
+            SELECT class_name, method_name, $column AS value FROM methods
+            WHERE is_builtin = 0 ORDER BY $column DESC, class_name, method_name LIMIT 1
+        ")->fetch_assoc();
+        if ($max === null) continue;
+        $maxMethods[$key] = [
+            'value' => $max['value'],
+            'name' => $max['class_name'] === '' ? $max['method_name'] : $max['class_name'] . '::' . $max['method_name'],
+        ];
+    }
 } catch (mysqli_sql_exception $e) {
     $statsError = $e->getMessage();
 }
-$statLabels = [
-    'classes' => 'Classes',
-    'interfaces' => 'Interfaces',
-    'traits' => 'Traits',
-    'methods' => 'Methods',
-    'functions' => 'Functions',
-    'calls' => 'Calls',
-    'avg_cyclo' => 'Avg cyclomatic complexity',
+// One row of cards per list: key in $stats => label. 'max' names the most complex method shown in the card
+$statRows = [
+    ['namespaces' => ['Namespaces', null], 'classes' => ['Classes', null], 'interfaces' => ['Interfaces', null], 'traits' => ['Traits', null]],
+    ['methods' => ['Methods', null], 'functions' => ['Functions', null], 'calls' => ['Calls', null]],
+    ['avg_cyclo' => ['Avg cyclomatic complexity', 'cyclo'], 'avg_cognitive' => ['Avg cognitive complexity', 'cognitive']],
 ];
 ?>
 <div class="ana-index">
@@ -44,14 +64,19 @@ $statLabels = [
 <?php if (isset($statsError)): ?>
     <p class="ana-error">Could not read the analysis data: <?= htmlspecialchars($statsError) ?></p>
 <?php else: ?>
+<?php foreach ($statRows as $statRow): ?>
     <div class="ana-stats">
-<?php foreach ($statLabels as $key => $label): ?>
-        <div class="ana-stat">
+<?php foreach ($statRow as $key => [$label, $maxKey]): ?>
+        <div class="ana-stat<?= isset($maxKey) ? ' ana-stat-wide' : '' ?>">
             <div class="value"><?= htmlspecialchars((string) ($stats[$key] ?? 0)) ?></div>
             <div class="label"><?= $label ?></div>
+<?php if (isset($maxKey, $maxMethods[$maxKey])): ?>
+            <div class="max">Max <strong><?= htmlspecialchars((string) $maxMethods[$maxKey]['value']) ?></strong>: <a href="detail.php?type=method&amp;name=<?= urlencode($maxMethods[$maxKey]['name']) ?>" title="<?= htmlspecialchars($maxMethods[$maxKey]['name']) ?>"><?= htmlspecialchars($maxMethods[$maxKey]['name']) ?></a></div>
+<?php endif; ?>
         </div>
 <?php endforeach; ?>
     </div>
+<?php endforeach; ?>
 <?php endif; ?>
 
 <?php foreach (array_merge([''], $anaGroups) as $group): ?>

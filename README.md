@@ -1,21 +1,46 @@
-# Ana a static analysis tool
+# Ana
 
+Static analysis for PHP projects. A PHPStan plugin records classes, methods, calls, properties and globals in MySQL; PHP pages then show metrics, graphs and review lists.
 
-## Setup database
+Needs PHP 8.4+, `ext-mysqli`, MySQL 8, [PHPStan](https://phpstan.org) 2.3+.
 
-- Set credentials in config/config.php
-- Run create_db.php or db/db_schema.sql
-- Edit phpstan.neon to point to the project to analyze
+## Setup
+
+1. `composer install`
+2. Set the MySQL credentials in `src/config/config.php`.
+3. Create the database: `php src/PHPStan/create_db.php` (or run `src/db/db_schema.sql`). Run it again to wipe a previous analysis; saved layouts and settings are kept.
+4. In `phpstan.neon` set `anaProjectName`, `paths` (the code to analyze) and `bootstrapFiles` (its autoloader).
 
 ## Run
 
-- vendor\bin\phpstan clear-result-cache
-- vendor\bin\phpstan analyse 
+```
+vendor/bin/phpstan clear-result-cache
+vendor/bin/phpstan analyse
+```
 
+Then serve `src/` with Apache or `php -S localhost:8000 -t src` and open `index.php`.
 
 ## Pages
 
-Open `src/index.php`
+| Menu | Page | Shows |
+|---|---|---|
+| Home | `index.php` | Totals, average and maximum complexity, a box for every page |
+| Review | `review.php` | Short lists to look at first: shared globals and static state, handlers, hard to change and most used methods |
+| Namespaces | Namespace Metrics | Size, complexity, coupling and cycles per namespace |
+| Classes | Class Metrics, Class Graphs | Every class metric; Zone of Pain and health radar |
+| Methods | Method Metrics, Method Graphs, Public Method Consumers, Change Impact | Every method metric; hotspots; who uses each public method; callers of a method |
+| State | Globals Report, Method Globals, Shared State | Globals, superglobals, constants and static properties, and who reads or writes them |
+| Dependencies | Call Graph, Dependency Cycles | Calls between namespaces, classes or methods; groups that depend on each other |
 
-## Saved layouts
-Table layouts (visible columns, sort order; `db/default_layouts.sql` seeds three practical ones per page) are saved in the `user_layouts` table, shared by every project and every user of this installation. `db_schema.sql` does not drop it, so re-running `create_db.php` keeps them. Layouts an earlier version kept in the browser are moved to the database the first time the page opens.
+Every class, method and namespace name links to its detail page (`detail.php`). Tables can be filtered, sorted, exported to CSV, and their column layouts saved.
+
+## How it works
+
+`src/PHPStan` holds three collectors (classes, methods, calls) and `ExportMetricsRule`, which writes them to the `ana` database. `src/api` serves the tables as JSON and `src/*.php` pages render them with [Tabulator](https://tabulator.info) and [ECharts](https://echarts.apache.org). Pages load both from a CDN.
+
+## Limits
+
+- Calls are recorded against the class of the variable they were made on, so methods called through an interface or a parent class can look unused.
+- Properties are tracked only through `$this`, `self::` and `static::`.
+- Calls outside any method or function, dynamic calls and callbacks by name are not recorded.
+- Analyzing again without re-creating the database can keep classes and methods deleted since.
