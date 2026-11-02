@@ -52,7 +52,7 @@
     <h2>What is recorded, and what is not</h2>
     <dl>
         <dt>Where the SQL is found</dt>
-        <dd>String literals, concatenations of literals and class constants, heredocs and interpolated strings inside a method or function, whether they are passed straight to a query function or kept in a variable first. A table named by a variable or property is shown as <code>?</code> (tick the Unknown table preset).</dd>
+        <dd>String literals, concatenations of literals and class constants, heredocs and interpolated strings inside a method or function, whether they are passed straight to a query function or kept in a variable first. A table named by a variable or property is shown as <code>{?}</code> (tick the Unknown table preset).</dd>
         <dt>Sqler helpers</dt>
         <dd>Calls of <code>insert('table', ...)</code>, <code>update('table', ...)</code> and <code>junctionTable('table', ...)</code> with the table written in the call count as a change of that table. Source tells them from SQL text. Another method with one of those names and a literal first argument would be counted too: check the Source column. The names are in <code>PHPStan/SqlUsageFinder.php</code>.</dd>
         <dt>Which method</dt>
@@ -113,7 +113,7 @@
             anaCol.rowNumber(),
             {
                 title: 'SQL', columns: [
-                    anaCol.text('Table or procedure', 'object_name', 'The table, view or stored procedure the SQL names. ? means the name is built from a variable and is not known.', {
+                    anaCol.text('Table or procedure', 'object_name', 'The table, view or stored procedure the SQL names. {?} means the name is built from a variable and is not known.', {
                         formatter: (cell) => {
                             const box = document.createElement('span');
                             box.textContent = cell.getValue();

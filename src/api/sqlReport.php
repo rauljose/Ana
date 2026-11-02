@@ -17,7 +17,8 @@ try {
         $report[] = [
             'operation' => $row['operation'],
             'object_type' => $row['object_type'],
-            'object_name' => $row['object_name'],
+            // {?} is a name only known at run time; databases analyzed before wrote it as ?
+            'object_name' => str_replace('?', '{?}', str_replace('{?}', '?', $row['object_name'])),
             'access' => $accessLabels[$row['access']] ?? $row['access'],
             'is_dynamic' => (int) $row['is_dynamic'] === 1,
             'source' => $row['source'] === 'HELPER' ? 'Sqler helper' : 'SQL text',

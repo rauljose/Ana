@@ -1,9 +1,13 @@
-<!DOCTYPE html>
+<?php
+// maltese_cross.php sets the mode: the same matrix, fixed to the tables and the methods that read and write them
+$dsmMode ??= 'matrix';
+$isCross = $dsmMode === 'maltese';
+?><!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dependency Matrix</title>
+    <title><?= $isCross ? 'Maltese Cross' : 'Dependency Matrix' ?></title>
 
     <link rel="stylesheet" href="css/ana.css">
     <script src="js/ana_graph.js"></script>
@@ -32,6 +36,8 @@
         .dsm-bar select, .dsm-bar input[type=text] { padding: 4px 6px; font-size: 0.9rem; }
         .dsm-bar button { padding: 5px 12px; border: 1px solid var(--border-color); border-radius: 4px; background: var(--panel-bg); cursor: pointer; font-size: 0.9rem; }
         .dsm-bar button:hover { background: var(--bg-color); }
+        .dsm-bar label[hidden] { display: none; }
+        body.dsm-cross { --dsm-cell: 38px; }
         .dsm-group { display: inline-flex; align-items: center; gap: 14px; }
         .dsm-group[hidden] { display: none; }
         .dsm-focus { flex: 1 1 520px; display: flex; align-items: center; flex-wrap: wrap; gap: 6px 8px; }
@@ -106,11 +112,11 @@
         .dsm-detail button { padding: 3px 10px; margin-right: 8px; cursor: pointer; }
     </style>
 </head>
-<body class="ana-table-page dsm-page">
+<body class="ana-table-page dsm-page<?= $isCross ? ' dsm-cross' : '' ?>">
 <?php require __DIR__ . '/partials/nav.php'; ?>
 
 <div class="dsm-bar">
-    <label>Level
+    <label id="lblLevel">Level
         <select id="selLevel">
             <option value="namespace">Namespace</option>
             <option value="class" selected>Class</option>
@@ -129,6 +135,15 @@
     </span>
 
     <span class="dsm-group" id="grpState" hidden>
+        <label id="lblAccess" title="Write also shows the cells that read and write the table (RW)">Access
+            <select id="selAccess">
+                <option value="all">All</option>
+                <option value="read">Read (R and RW)</option>
+                <option value="write">Write (W and RW)</option>
+                <option value="call">Call (C)</option>
+                <option value="ddl">DDL (D)</option>
+            </select>
+        </label>
         <label>Used by
             <select id="selUsedBy">
                 <option value="namespace">Namespaces</option>
@@ -173,6 +188,7 @@
 <div class="dsm-detail" id="detail"><span class="hint">Click a cell for the evidence behind it, or a row or column name for what it uses and what uses it.</span></div>
 
 <script>
+    const CROSS = <?= json_encode($isCross) ?>;
     const MAX_CELLS = 250000;
     const SQUARE_LEVELS = ['namespace', 'class', 'method'];
     const RELATION_KIND = { EXTENDS: 'inherit', IMPLEMENTS: 'inherit', USES: 'inherit', TYPE_HINT: 'typehint' };
@@ -293,13 +309,16 @@
     });
     // What belongs to no class: its rows are not filed under the class of the first one that uses it
     const OWNERLESS_TYPES = ['Global variable', 'Superglobal variable', 'Constant', 'Table', 'Procedure'];
-    const ACCESS_LETTER = { Read: '', Write: 'W', 'Read/Write': 'W', Call: 'C', DDL: 'D' };
+    const ACCESS_LETTERS = { Read: ['R'], Write: ['W'], 'Read/Write': ['R', 'W'], Call: ['C'], DDL: ['D'] };
+    const LETTER_ORDER = 'RWDC';
+    const ACCESS_FILTER_LETTER = { read: 'R', write: 'W', call: 'C', ddl: 'D' };
 
     function buildRect(level, options) {
         const m = newModel(false);
         const wantConstants = level === 'constant';
         const symbols = level === 'table' ? data.sql.map(sqlAsSymbol) : data.state.filter(s => isConstantSymbol(s) === wantConstants);
-        symbols.forEach(s => {            if (s.is_native && !options.native) return;
+        symbols.forEach(s => {
+            if (s.is_native && !options.native) return;
             if (s.visibility && s.visibility !== 'public' && !options.nonPublic) return;
 
             const id = symbolId(s);
@@ -314,7 +333,7 @@
             const consumer = describe(options.usedBy, s.class_name, s.method_fqn);
             getOrSet(m.colEls, consumer.id, () => consumer);
 
-            const meta = getOrSet(m.rowMeta, id, () => ({ classes: new Set(), written: false, writers: new Set() }));
+            const meta = getOrSet(m.rowMeta, id, () => ({ classes: new Set(), written: false, writers: new Set(), unknown: id.includes('{?}') }));
             const userClass = s.class_name !== '' ? s.class_name : functionClassOf(s.method_fqn);
             meta.classes.add(userClass);
             const isWrite = ['Write', 'Read/Write', 'DDL'].includes(s.access);
@@ -324,7 +343,7 @@
             const cell = addCell(m, id, consumer.id, 'state', 0, { kind: 'state', who: s.method_fqn, access: s.operation ?? s.access, snippet: s.snippet ?? '' });
             cell.methods ??= new Set();
             cell.letters ??= new Set();
-            if (ACCESS_LETTER[s.access]) cell.letters.add(ACCESS_LETTER[s.access]);
+            (ACCESS_LETTERS[s.access] ?? []).forEach(letter => cell.letters.add(letter));
             cell.call ||= s.access === 'Call';
             cell.methods.add(s.method_fqn);
             cell.n = cell.methods.size;
@@ -339,6 +358,16 @@
                 m.rowEls.delete(id);
             });
         }
+
+        // Filtering by write keeps the cells that read and write (RW) too: a cell stays whole or goes
+        if (options.access !== 'all') {
+            const letter = ACCESS_FILTER_LETTER[options.access];
+            m.cells.forEach((cols, rowId) => cols.forEach((cell, colId) => {
+                if (cell.letters.has(letter)) return;
+                cols.delete(colId);
+                m.byCol.get(colId).delete(rowId);
+            }));
+        }
         return m;
     }
 
@@ -352,6 +381,7 @@
 
         if (!m.square) {
             m.rowMeta.forEach(meta => {
+                if (meta.unknown) return;
                 if (meta.writers.size >= 2) a.severe++;
                 else if (meta.written && meta.classes.size >= 2) a.written++;
             });
@@ -397,6 +427,7 @@
 
     function decideCell(m, a, rowId, colId, cell, heavyFloor) {
         if (!m.square) {
+            if (cell.write && m.rowMeta.get(rowId)?.unknown) return { code: 'u', reason: 'Written to a table that is not known: the name is built at run time' };
             if (cell.write) {
                 const writers = m.rowMeta.get(rowId)?.writers.size ?? 0;
                 if (writers >= 2) return { code: 'x', reason: `Written from ${writers} different classes: they can break each other` };
@@ -420,6 +451,7 @@
         if (m.square) return fanIn >= a.hubFloor ? { code: 'hot', reason: `Depended on by ${fanIn}: a change here spreads` } : { code: '', reason: '' };
         if (side === 'rows') {
             const meta = m.rowMeta.get(id);
+            if (meta.unknown) return { code: 'hot', reason: 'Table not known: the name is built at run time, so these are not one table' };
             if (meta.writers.size >= 2) return { code: 'worst', reason: `Written from ${meta.writers.size} different classes: they can break each other` };
             if (meta.classes.size < 2) return { code: '', reason: 'Used from one class only' };
             return meta.written
@@ -480,7 +512,9 @@
     // ---------- Render ----------
 
     const cellText = (m, cell) => {
-        if (!m.square) return cell.n + [...cell.letters].sort().join('');
+        if (m.square) return cell.n > 999 ? '1k+' : String(cell.n);
+        const letters = [...cell.letters].filter(letter => CROSS || letter !== 'R').sort((x, y) => LETTER_ORDER.indexOf(x) - LETTER_ORDER.indexOf(y)).join('');
+        return CROSS ? letters + (cell.n > 1 ? '×' + cell.n : '') : cell.n + letters;
         return cell.n > 999 ? '1k+' : String(cell.n);
     };
 
@@ -596,6 +630,10 @@
     }
 
     function renderLegend(square) {
+        if (CROSS) {
+            $('legend').innerHTML = '<span class="worst">pink: several classes write the table</span><span class="bad">W: writes it, RW: reads it and writes it</span><span class="normal">R: only reads it</span><span class="bad" style="font-weight:400">D: DDL</span><span class="hot">C: calls a procedure</span><span class="hot">amber {?}: table not known, the name is built at run time</span>';
+            return;
+        }
         $('legend').innerHTML = square
             ? '<span class="bad">red bold on pink: mutual dependency</span><span class="bad" style="font-weight:400">red: same cycle</span><span class="heavy">blue bold: heavy</span><span class="normal">blue: dependency</span><span class="light">grey-blue: a single one</span><span>grey cell: inside itself</span><span class="bad">red name: in a cycle</span><span class="hot">amber name: many depend on it</span>'
             : '<span class="worst">pink W: several classes write it</span><span class="bad">red W: written, shared by 2+ classes</span><span class="hot">amber W: written, one class only</span><span class="bad" style="font-weight:400">D: DDL, counts as a write</span><span class="hot">amber C: calls a procedure</span><span class="heavy">blue bold: read by many methods</span><span class="normal">blue: read</span><span class="worst">pink name: several writers</span><span class="bad">red name: written and shared</span><span class="hot">amber name: read from 2+ classes</span>';
@@ -652,6 +690,8 @@
         const square = isSquare(level);
         $('grpDependencies').hidden = !square;
         $('grpState').hidden = square;
+        $('lblLevel').hidden = CROSS;
+        $('lblAccess').hidden = level !== 'table';
         $('chkNonPublic').disabled = level === 'table';
         $('chkNative').disabled = level === 'table';
         $('chkInherit').disabled = level === 'method';
@@ -675,6 +715,7 @@
             nonPublic: $('chkNonPublic').checked,
             native: $('chkNative').checked,
             shared: $('chkShared').checked,
+            access: $('selLevel').value === 'table' ? $('selAccess').value : 'all',
         };
     }
 
@@ -715,6 +756,7 @@
         const params = new URLSearchParams();
         params.set('level', $('selLevel').value);
         if (!isSquare($('selLevel').value)) params.set('usedBy', $('selUsedBy').value);
+        if ($('selLevel').value === 'table') params.set('access', $('selAccess').value);
         if (focus.length) params.set('focus', focus.join(','));
         params.set('side', $('selSide').value);
         params.set('order', $('selOrder').value);
@@ -725,10 +767,10 @@
         if (!view) return;
         const quote = (text) => '"' + String(text).replace(/"/g, '""') + '"';
         const lines = [['', ...view.cols.map(col => col.id)].map(quote).join(',')];
-        view.rows.forEach(row => lines.push([quote(row.id), ...view.cols.map(col => model.cells.get(row.id)?.get(col.id)?.n ?? '')].join(',')));
+        view.rows.forEach(row => lines.push([quote(row.id), ...view.cols.map(col => { const cell = model.cells.get(row.id)?.get(col.id); return cell ? quote(cellText(model, cell)) : ''; })].join(',')));
         const link = document.createElement('a');
         link.href = URL.createObjectURL(new Blob([lines.join('\n')], { type: 'text/csv' }));
-        link.download = 'dependency_matrix.csv';
+        link.download = CROSS ? 'maltese_cross.csv' : 'dependency_matrix.csv';
         link.click();
         URL.revokeObjectURL(link.href);
     }
@@ -755,14 +797,19 @@
 
     function init() {
         const params = new URLSearchParams(location.search);
-        if (params.get('level')) $('selLevel').value = params.get('level');
+        if (CROSS) {
+            $('selLevel').value = 'table';
+            $('selUsedBy').value = 'method';
+        }
+        if (params.get('level') && !CROSS) $('selLevel').value = params.get('level');
         if (params.get('usedBy')) $('selUsedBy').value = params.get('usedBy');
+        if (params.get('access')) $('selAccess').value = params.get('access');
         if (params.get('order')) $('selOrder').value = params.get('order');
         focus = (params.get('focus') ?? '').split(',').map(name => name.trim()).filter(Boolean);
         syncControls();
         if (params.get('side')) $('selSide').value = params.get('side');
 
-        ['selLevel', 'selUsedBy', 'chkCalls', 'chkInherit', 'chkTypeHint', 'chkExternal', 'chkNonPublic', 'chkNative', 'chkShared']
+        ['selLevel', 'selUsedBy', 'selAccess', 'chkCalls', 'chkInherit', 'chkTypeHint', 'chkExternal', 'chkNonPublic', 'chkNative', 'chkShared']
             .forEach(id => $(id).addEventListener('change', () => { syncControls(); refresh(); }));
         ['selOrder', 'selSide', 'chkHideEmpty'].forEach(id => $(id).addEventListener('change', render));
         $('btnFocusAdd').addEventListener('click', () => addFocus($('focusInput').value));
