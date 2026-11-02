@@ -107,11 +107,10 @@ body.ana-index-page, body.ana-review-page {
 }
 .ana-stat .value { font-size: 1.6rem; font-weight: bold; }
 .ana-stat .label { font-size: 0.85rem; color: #6c757d; }
-/* Index page: one flexbox of summary boxes. Each box is at least 190px wide, sizes to its content (method names are long)
-   and grows to share the row, never wider than the whole row */
+/* Index page: one flexbox of summary boxes. Each box is at least 190px wide and sizes to its content (method names are long),
+   never wider than the whole row. Boxes never grow: spare room stays blank after the last box of a row */
 .ana-stats-flexbox { display: flex; flex-wrap: wrap; gap: 14px; margin-bottom: 28px; }
-.ana-stat-item:last-child { flex-grow: 0; }
-.ana-stat-item { flex: 1 1 auto; min-width: 190px; max-width: 100%; box-sizing: border-box; background: var(--panel-bg); border: 1px solid var(--border-color); border-radius: 6px; padding: 14px 16px; }
+.ana-stat-item { flex: 0 1 auto; min-width: 190px; max-width: 100%; box-sizing: border-box; background: var(--panel-bg); border: 1px solid var(--border-color); border-radius: 6px; padding: 14px 16px; }
 .ana-stat-item .value { font-size: 1.6rem; font-weight: bold; }
 .ana-stat-item .label { font-size: 0.85rem; color: #6c757d; }
 .ana-stat-item .max { margin-top: 6px; font-size: 0.85rem; color: #495057; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -128,8 +127,7 @@ body.ana-index-page, body.ana-review-page {
 .ana-index h2.ana-group { margin: 0 0 10px; font-size: 1.1rem; padding-bottom: 4px; border-bottom: 2px solid var(--accent); }
 /* Index page: one large flexbox; each subject (Namespaces, Classes, Methods...) is an item holding its page cards */
 .ana-groups-flexbox { display: flex; flex-wrap: wrap; gap: 28px 20px; align-items: flex-start; }
-.ana-group-item { flex: 1 1 300px; max-width: 100%; box-sizing: border-box; }
-.ana-group-item:last-child { flex: 0 1 300px; }
+.ana-group-item { flex: 0 1 380px; max-width: 100%; box-sizing: border-box; }
 .ana-group-item .ana-cards { display: flex; flex-direction: column; gap: 14px; }
 .ana-index .ana-error { color: #dc3545; }
 
