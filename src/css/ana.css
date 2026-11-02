@@ -95,7 +95,7 @@ body.ana-index-page, body.ana-review-page {
     background-color: var(--bg-color);
     color: var(--text-main);
 }
-.ana-index { max-width: 1100px; margin: 0 auto; padding: 24px 20px; }
+.ana-index { max-width: 98vw; margin: 0 auto; padding: 24px 20px; }
 .ana-index h1 { margin: 0 0 4px; font-size: 1.6rem; }
 .ana-index .ana-subtitle { margin: 0 0 24px; color: #6c757d; font-size: 0.9rem; }
 .ana-stats, .ana-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 14px; margin-bottom: 28px; }
@@ -108,12 +108,13 @@ body.ana-index-page, body.ana-review-page {
 }
 .ana-stat .value { font-size: 1.6rem; font-weight: bold; }
 .ana-stat .label { font-size: 0.85rem; color: #6c757d; }
-.ana-stats { margin-bottom: 14px; }
-.ana-stats:last-of-type { margin-bottom: 28px; }
-/* Index page: cards size to their content (method names are long), at least 190px and at most the whole row */
-.ana-index .ana-stats { display: flex; flex-wrap: wrap; }
-.ana-index .ana-stat { flex: 0 1 auto; min-width: 190px; max-width: 100%; box-sizing: border-box; }
-.ana-stat .max { margin-top: 6px; font-size: 0.85rem; color: #495057; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Index page: one flexbox of summary boxes. Each box is at least 190px wide, sizes to its content (method names are long)
+   and grows to share the row, never wider than the whole row */
+.ana-stats-flexbox { display: flex; flex-wrap: wrap; gap: 14px; margin-bottom: 28px; }
+.ana-stat-item { flex: 1 1 auto; min-width: 190px; max-width: 100%; box-sizing: border-box; background: var(--panel-bg); border: 1px solid var(--border-color); border-radius: 6px; padding: 14px 16px; }
+.ana-stat-item .value { font-size: 1.6rem; font-weight: bold; }
+.ana-stat-item .label { font-size: 0.85rem; color: #6c757d; }
+.ana-stat-item .max { margin-top: 6px; font-size: 0.85rem; color: #495057; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ana-card { text-decoration: none; color: var(--text-main); }
 .ana-card:hover { border-color: var(--accent); }
 .ana-card h2 { margin: 0 0 6px; font-size: 1.05rem; color: var(--accent); }

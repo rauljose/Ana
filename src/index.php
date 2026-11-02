@@ -50,11 +50,11 @@ try {
 } catch (mysqli_sql_exception $e) {
     $statsError = $e->getMessage();
 }
-// One row of cards per list: key in $stats => label. 'max' names the most complex method shown in the card
-$statRows = [
-    ['namespaces' => ['Namespaces', null], 'classes' => ['Classes', null], 'interfaces' => ['Interfaces', null], 'traits' => ['Traits', null]],
-    ['methods' => ['Methods', null], 'functions' => ['Functions', null], 'calls' => ['Calls', null]],
-    ['avg_cyclo' => ['Avg cyclomatic complexity', 'cyclo'], 'avg_cognitive' => ['Avg cognitive complexity', 'cognitive']],
+// The summary boxes: key in $stats => [label, key of the most complex method shown in the box, or null]
+$statItems = [
+    'namespaces' => ['Namespaces', null], 'classes' => ['Classes', null], 'interfaces' => ['Interfaces', null], 'traits' => ['Traits', null],
+    'methods' => ['Methods', null], 'functions' => ['Functions', null], 'calls' => ['Calls', null],
+    'avg_cyclo' => ['Avg cyclomatic complexity', 'cyclo'], 'avg_cognitive' => ['Avg cognitive complexity', 'cognitive'],
 ];
 ?>
 <div class="ana-index">
@@ -64,10 +64,9 @@ $statRows = [
 <?php if (isset($statsError)): ?>
     <p class="ana-error">Could not read the analysis data: <?= htmlspecialchars($statsError) ?></p>
 <?php else: ?>
-<?php foreach ($statRows as $statRow): ?>
-    <div class="ana-stats">
-<?php foreach ($statRow as $key => [$label, $maxKey]): ?>
-        <div class="ana-stat<?= isset($maxKey) ? ' ana-stat-wide' : '' ?>">
+    <div class="ana-stats-flexbox">
+<?php foreach ($statItems as $key => [$label, $maxKey]): ?>
+        <div class="ana-stat-item">
             <div class="value"><?= htmlspecialchars((string) ($stats[$key] ?? 0)) ?></div>
             <div class="label"><?= $label ?></div>
 <?php if (isset($maxKey, $maxMethods[$maxKey])): ?>
@@ -76,7 +75,6 @@ $statRows = [
         </div>
 <?php endforeach; ?>
     </div>
-<?php endforeach; ?>
 <?php endif; ?>
 
 <?php foreach (array_merge([''], $anaGroups) as $group): ?>
