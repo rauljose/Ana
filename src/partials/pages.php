@@ -17,6 +17,7 @@ $anaPages = [
     'shared_state.php' => ['Shared State', 'Global variables, superglobals and static properties with the methods that read and write each one: hidden coupling between classes and namespaces', 'State'],
     'method_public_consumers.php' => ['Public Method Consumers', 'Who uses each public method: callers in its own class, in other classes or namespaces, or none recorded', 'Methods'],
     'sql_report.php' => ['SQL Report', 'The SQL in the code: which methods read, change, call or define each table and procedure, and which tables are changed from several classes', 'State'],
+    'maltese_cross.php' => ['Maltese Cross', 'Database tables against the methods and functions that use them: R, W or RW in each cell, and a filter that keeps what writes, read and write included', 'State'],
     'dsm.php' => ['Dependency Matrix', 'Who depends on whom as a matrix of namespaces, classes, methods, shared properties and variables or constants, limited to a focus, with cycles and heavy dependencies in color', 'Dependencies'],
     'dependency_cycles.php' => ['Dependency Cycles', 'Namespaces, classes or methods that depend on each other in a loop, with an example path and the calls behind it', 'Dependencies'],
 ];

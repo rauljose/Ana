@@ -78,7 +78,7 @@ final class SqlStatements
         return [
             'operation' => $operation,
             'object_type' => $type,
-            'object_name' => str_replace(self::DYNAMIC, '?', $name),
+            'object_name' => str_replace(self::DYNAMIC, '{?}', $name),
             'access' => $access,
             'is_dynamic' => str_contains($name, self::DYNAMIC) ? 1 : 0,
         ];
