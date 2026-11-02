@@ -16,4 +16,4 @@ Register the collectors and the rule as services in `phpstan.neon` (see the one 
 ## Notes
 
 - Run `vendor/bin/phpstan clear-result-cache` before analyzing again, or PHPStan skips unchanged files and their data.
-- Each run replaces classes' relations, properties, calls and global/property access. Classes and methods are only added or updated, so re-create the database to drop deleted ones.
+- Each run first deletes everything from every table except `user_layouts` and `user_settings`, so deleted classes and methods do not linger.

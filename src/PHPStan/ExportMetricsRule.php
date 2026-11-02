@@ -45,6 +45,13 @@ class ExportMetricsRule implements Rule
         try {
         $mysqli->begin_transaction();
 
+        // Every analysis starts empty: delete from all tables except the user's own (layouts and settings)
+        $keepTables = ['user_layouts', 'user_settings'];
+        foreach ($mysqli->query("SHOW TABLES")->fetch_all(MYSQLI_NUM) as [$table]) {
+            if (in_array($table, $keepTables, true)) continue;
+            $mysqli->query("DELETE FROM `$table`");
+        }
+
         $stmtClass = $mysqli->prepare("
             INSERT INTO classes (class_name, is_interface, is_trait, is_abstract, is_final, is_readonly, is_static, doc_comment) 
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
@@ -67,12 +74,8 @@ class ExportMetricsRule implements Rule
             is_constant = VALUES(is_constant), type_hint = VALUES(type_hint), doc_comment = VALUES(doc_comment)
         ");
 
-        $mysqli->query("TRUNCATE TABLE project");
         $stmtProject = $mysqli->prepare("INSERT INTO project (name) VALUES (?)");
         $stmtProject->execute([$this->projectName]);
-
-        $mysqli->query("TRUNCATE TABLE class_relations");
-        $mysqli->query("TRUNCATE TABLE properties");
 
         foreach ($classes as  $fileClasses) {
             foreach ($fileClasses as $cls) {
@@ -127,9 +130,6 @@ class ExportMetricsRule implements Rule
             VALUES (?, ?, ?, ?)
         ");
 
-        $mysqli->query("TRUNCATE TABLE method_globals");
-        $mysqli->query("TRUNCATE TABLE method_property_access");
-
         foreach ($definitions as $file => $fileDefs) {
             foreach ($fileDefs as $def) {
                 $stmtMethod->execute([
@@ -159,8 +159,6 @@ class ExportMetricsRule implements Rule
                 num_object_parameters, return_type, is_ends, signature
             ) VALUES ('', ?, 'public', 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 'mixed', 0, '')
         ");
-
-        $mysqli->query("TRUNCATE TABLE calls");
 
         foreach ($calls as $file => $fileCalls) {
             foreach ($fileCalls as $call) {

@@ -12,17 +12,15 @@ Needs PHP 8.4+, `ext-mysqli`, MySQL 8, [PHPStan](https://phpstan.org) 2.3+.
 4. In `phpstan.neon` set `anaProjectName`, `paths` (the code to analyze) and `bootstrapFiles` (its autoloader).
 
 ## Run
-```sh
-vendor\bin\phpstan clear-result-cache
 
-```
+```sh
 vendor/bin/phpstan clear-result-cache
 vendor/bin/phpstan analyse
-vendor\bin\phpstan analyse 
 ```
 
-Then serve `src/` with Apache or `php -S localhost:8000 -t src` and open `index.php`.
+(On Windows: `vendor\bin\phpstan`.)
 
+Then serve `src/` with Apache or `php -S localhost:8000 -t src` and open `index.php`.
 
 ## View
 
@@ -47,4 +45,3 @@ Every class, method and namespace name links to its detail page (`detail.php`). 
 - Calls are recorded against the class of the variable they were made on, so methods called through an interface or a parent class can look unused.
 - Properties are tracked only through `$this`, `self::` and `static::`.
 - Calls outside any method or function, dynamic calls and callbacks by name are not recorded.
-- Analyzing again without re-creating the database can keep classes and methods deleted since.

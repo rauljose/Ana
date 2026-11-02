@@ -110,7 +110,9 @@ body.ana-index-page, body.ana-review-page {
 .ana-stat .label { font-size: 0.85rem; color: #6c757d; }
 .ana-stats { margin-bottom: 14px; }
 .ana-stats:last-of-type { margin-bottom: 28px; }
-.ana-stat-wide { grid-column: span 2; min-width: 0; }
+/* Index page: cards size to their content (method names are long), at least 190px and at most the whole row */
+.ana-index .ana-stats { display: flex; flex-wrap: wrap; }
+.ana-index .ana-stat { flex: 0 1 auto; min-width: 190px; max-width: 100%; box-sizing: border-box; }
 .ana-stat .max { margin-top: 6px; font-size: 0.85rem; color: #495057; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ana-card { text-decoration: none; color: var(--text-main); }
 .ana-card:hover { border-color: var(--accent); }

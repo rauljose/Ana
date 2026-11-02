@@ -15,7 +15,7 @@ $anaPages = [
     'call_graph.php' => ['Call Graph', 'Calls between namespaces, classes or methods, with incoming and outgoing calls of a focus', 'Dependencies'],
     'change_impact.php' => ['Change Impact', 'Pick a method or function and see everything that calls it, directly or through other methods: what to retest before changing it', 'Methods'],
     'shared_state.php' => ['Shared State', 'Global variables, superglobals and static properties with the methods that read and write each one: hidden coupling between classes and namespaces', 'State'],
-    'api_consumers.php' => ['Public Method Consumers', 'Who uses each public method: callers in its own class, in other classes or namespaces, or none recorded', 'Methods'],
+    'method_public_consumers.php' => ['Public Method Consumers', 'Who uses each public method: callers in its own class, in other classes or namespaces, or none recorded', 'Methods'],
     'dependency_cycles.php' => ['Dependency Cycles', 'Namespaces, classes or methods that depend on each other in a loop, with an example path and the calls behind it', 'Dependencies'],
 ];
 
