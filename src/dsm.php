@@ -506,7 +506,7 @@
             return;
         }
         if (rows.length === 0 || cols.length === 0) {
-            $('scroll').innerHTML = `<div class="dsm-message">Nothing to show. ${focus.length ? 'The focus matches no row here, or what it matches has no dependencies. Check the level and the side of the focus.' : (level === 'table' && data.sql.length === 0 ? 'No SQL was recorded. Create the database again with db/db_schema.sql and run the analysis again.' : 'The analysis has no dependencies at this level.')}</div>`;
+            $('scroll').innerHTML = `<div class="dsm-message">Nothing to show. ${focus.length ? 'The focus matches no row here, or what it matches has no dependencies. Check the level and the side of the focus.' : (level === 'table' && data.sql.length === 0 ? 'No SQL was recorded. Run the analysis again.' : 'The analysis has no dependencies at this level.')}</div>`;
             renderSummary(0, 0);
             return;
         }
