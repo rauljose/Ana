@@ -110,6 +110,27 @@ CREATE TABLE IF NOT EXISTS method_sql (
     KEY idx_method_sql_object (object_name)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+-- The Firebase data (kreait/firebase-php) each method or function reads and writes, by path.
+-- mode: what the call does to the path: OVERWRITE (path and everything under it), CHILDREN (only the children named),
+-- APPEND (a new child with a generated key), REMOVE (path and everything under it) for writes;
+-- ALL (path and everything under it), QUERY (some children), KEYS (names of the children), METADATA for reads
+DROP TABLE IF EXISTS method_firebase;
+CREATE TABLE IF NOT EXISTS method_firebase (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    class_name VARCHAR(255) NOT NULL,
+    method_name VARCHAR(255) NOT NULL,
+    service ENUM('REALTIME', 'FIRESTORE', 'STORAGE') NOT NULL,
+    object_type VARCHAR(12) NOT NULL,
+    path VARCHAR(500) NOT NULL,
+    operation VARCHAR(24) NOT NULL,
+    access ENUM('READ', 'WRITE') NOT NULL,
+    mode ENUM('OVERWRITE', 'CHILDREN', 'APPEND', 'REMOVE', 'ALL', 'QUERY', 'KEYS', 'METADATA') NOT NULL,
+    is_dynamic TINYINT(1) NOT NULL DEFAULT 0,
+    snippet VARCHAR(255) NOT NULL DEFAULT '',
+    KEY idx_method_firebase_method (class_name, method_name),
+    KEY idx_method_firebase_path (path(191))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
 -- User settings live apart from the analysis data: no DROP, so re-running this file keeps the layouts
 CREATE TABLE IF NOT EXISTS user_layouts (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,

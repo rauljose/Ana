@@ -41,6 +41,7 @@ Then serve `src/` with Apache or `php -S localhost:8000 -t src` and open `index.
 | Methods | Method Metrics, Method Graphs, Public Method Consumers, Change Impact | Every method metric; hotspots; who uses each public method; callers of a method |
 | State | Globals Report, Method Globals, Shared State | Globals, superglobals, constants and static properties, and who reads or writes them |
 | SQL | SQL Report, Maltese Cross | The SQL in the code: which methods read, change, call or define each table and procedure, and that as a tables by methods matrix with R, W or RW in each cell |
+| Firebase | Firebase Report, Firebase Cross | The Firebase paths (Realtime Database, Firestore, Storage) the code reads and writes, and whether a write overwrites, changes children, appends or deletes |
 | Dependencies | Call Graph, Dependency Matrix, Dependency Cycles | Calls between namespaces, classes or methods; the same as a matrix, for a focus, with cycles and heavy dependencies in color; groups that depend on each other |
 
 Every class, method and namespace name links to its detail page (`detail.php`). Tables can be filtered, sorted, exported to CSV, and their column layouts saved.
@@ -52,6 +53,10 @@ Every class, method and namespace name links to its detail page (`detail.php`). 
 ## SQL
 
 The plugin also reads the SQL a method holds, in string literals, concatenations of literals and class constants, heredocs and interpolated strings, and the Sqler `insert()`, `update()` and `junctionTable()` helpers. It records SELECT, INSERT, UPDATE, DELETE, REPLACE, TRUNCATE, CALL and CREATE, ALTER, DROP, RENAME by table or procedure (a table named by a variable shows as `{?}`). The text is read, not run or fully parsed, and it counts for the method that holds it. The helper names are in `src/PHPStan/SqlUsageFinder.php`. A database analyzed before this only needs the analysis run again: the `method_sql` table is created when missing.
+
+## Firebase
+
+Projects using kreait/firebase-php (the latest version) get the same for their Firebase data: the plugin reads the call chains of each method (`getReference('a')->getChild('b')->set(...)`), the variables and typed parameters holding a reference, and the references passed to transactions, bulk writers and batches. It covers the Realtime Database, Firestore and Cloud Storage, and records the path, whether the call reads or writes, and what it does to the path: overwrites it and everything under it, changes only the children it names, appends a new child, or deletes it. A part of a path only known at run time is `{?}`. Firebase Report lists them by path, Firebase Cross puts the paths against the methods. Needs the analysis run again, as for the SQL.
 
 ## Limits
 

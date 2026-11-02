@@ -1,13 +1,16 @@
 <?php
-// maltese_cross.php sets the mode: the same matrix, fixed to the tables and the methods that read and write them
+// maltese_cross.php and firebase_cross.php set the mode: the same matrix, fixed to the SQL tables or to the Firebase paths
+// and the methods that read and write them
 $dsmMode ??= 'matrix';
-$isCross = $dsmMode === 'maltese';
+$crossLevel = ['maltese' => 'table', 'firebase' => 'firebase'][$dsmMode] ?? null;
+$isCross = $crossLevel !== null;
+$crossTitle = ['maltese' => 'Maltese Cross', 'firebase' => 'Firebase Cross'][$dsmMode] ?? 'Dependency Matrix';
 ?><!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= $isCross ? 'Maltese Cross' : 'Dependency Matrix' ?></title>
+    <title><?= $crossTitle ?></title>
 
     <link rel="stylesheet" href="css/ana.css">
     <script src="js/ana_graph.js"></script>
@@ -51,6 +54,11 @@ $isCross = $dsmMode === 'maltese';
         .dsm-summary .bad, .dsm-legend .bad { color: var(--dsm-bad); font-weight: 700; }
         .dsm-summary .hot, .dsm-legend .hot { color: var(--dsm-hot); font-weight: 700; }
         .dsm-summary .worst, .dsm-legend .worst, .dsm-detail .worst { color: var(--dsm-bad); font-weight: 800; background: var(--dsm-bad-bg); text-decoration: underline; padding: 0 4px; }
+        .dsm-legend .ok { color: var(--dsm-ok); font-weight: 700; }
+        table.dsm .L-O, table.dsm .L-X { color: var(--dsm-bad); font-weight: 800; }
+        table.dsm .L-C { color: var(--dsm-hot); font-weight: 700; }
+        table.dsm .L-A { color: var(--dsm-ok); font-weight: 700; }
+        table.dsm .L-R { color: var(--dsm-normal); font-weight: 400; }
         .dsm-summary .ok { color: var(--dsm-ok); font-weight: 700; }
         .dsm-summary #hoverInfo { margin-left: auto; color: var(--text-main); }
         .dsm-legend { display: flex; flex-wrap: wrap; gap: 4px 20px; padding: 5px 20px; font-size: 0.85rem; color: var(--dsm-muted); border-bottom: 1px solid var(--border-color); background: var(--panel-bg); flex-shrink: 0; }
@@ -124,6 +132,7 @@ $isCross = $dsmMode === 'maltese';
             <option value="property">Public &amp; global properties and variables</option>
             <option value="constant">Constants</option>
             <option value="table">Database tables and procedures</option>
+            <option value="firebase">Firebase paths</option>
         </select>
     </label>
 
@@ -138,10 +147,6 @@ $isCross = $dsmMode === 'maltese';
         <label id="lblAccess" title="Write also shows the cells that read and write the table (RW)">Access
             <select id="selAccess">
                 <option value="all">All</option>
-                <option value="read">Read (R and RW)</option>
-                <option value="write">Write (W and RW)</option>
-                <option value="call">Call (C)</option>
-                <option value="ddl">DDL (D)</option>
             </select>
         </label>
         <label>Used by
@@ -189,6 +194,9 @@ $isCross = $dsmMode === 'maltese';
 
 <script>
     const CROSS = <?= json_encode($isCross) ?>;
+    const CROSS_LEVEL = <?= json_encode($crossLevel) ?>;
+    // Levels where each use is its own letter in the cell, and the Access filter works
+    const LETTER_LEVELS = ['table', 'firebase'];
     const MAX_CELLS = 250000;
     const SQUARE_LEVELS = ['namespace', 'class', 'method'];
     const RELATION_KIND = { EXTENDS: 'inherit', IMPLEMENTS: 'inherit', USES: 'inherit', TYPE_HINT: 'typehint' };
@@ -307,16 +315,41 @@ $isCross = $dsmMode === 'maltese';
         class_name: row.class_name,
         method_fqn: row.method_fqn,
     });
+    // A Firebase use in the shape of a state use. The letter says what the call does to the path:
+    // O overwrites it and everything under it, X deletes it, C changes only the children it names, A appends a new child, R reads
+    const MODE_LETTER = { OVERWRITE: 'O', CHILDREN: 'C', APPEND: 'A', REMOVE: 'X' };
+    const firebaseAsSymbol = (row) => ({
+        symbol_type: row.service,
+        symbol: row.path,
+        symbol_fqn: row.service_code + ':' + row.path,
+        label: row.path,
+        context: row.service + ' · ' + row.object_type,
+        access: row.access,
+        letters: row.access === 'Write' ? ['W', MODE_LETTER[row.mode]] : ['R'],
+        operation: row.operation + ' · ' + row.effect,
+        snippet: row.snippet,
+        class_name: row.class_name,
+        method_fqn: row.method_fqn,
+        // Appending a child collides with nobody; the rest can break what another class wrote
+        collides: ['OVERWRITE', 'REMOVE', 'CHILDREN'].includes(row.mode),
+        unknownRow: row.path === '{?}',
+    });
     // What belongs to no class: its rows are not filed under the class of the first one that uses it
-    const OWNERLESS_TYPES = ['Global variable', 'Superglobal variable', 'Constant', 'Table', 'Procedure'];
+    const OWNERLESS_TYPES = ['Global variable', 'Superglobal variable', 'Constant', 'Table', 'Procedure', 'Realtime Database', 'Firestore', 'Storage'];
     const ACCESS_LETTERS = { Read: ['R'], Write: ['W'], 'Read/Write': ['R', 'W'], Call: ['C'], DDL: ['D'] };
-    const LETTER_ORDER = 'RWDC';
-    const ACCESS_FILTER_LETTER = { read: 'R', write: 'W', call: 'C', ddl: 'D' };
+    const LETTER_ORDER = { table: 'RWDC', firebase: 'ROCAX' };
+    const ACCESS_FILTER_LETTER = { read: 'R', write: 'W', call: 'C', ddl: 'D', overwrite: 'O', children: 'C', append: 'A', remove: 'X' };
+    const ACCESS_FILTERS = {
+        table: [['all', 'All'], ['read', 'Read (R and RW)'], ['write', 'Write (W and RW)'], ['call', 'Call (C)'], ['ddl', 'DDL (D)']],
+        firebase: [['all', 'All'], ['read', 'Read (R)'], ['write', 'Write (O, C, A, X)'], ['overwrite', 'Overwrite (O)'], ['children', 'Children (C)'], ['append', 'Append (A)'], ['remove', 'Remove (X)']],
+    };
 
     function buildRect(level, options) {
         const m = newModel(false);
+        m.level = level;
         const wantConstants = level === 'constant';
-        const symbols = level === 'table' ? data.sql.map(sqlAsSymbol) : data.state.filter(s => isConstantSymbol(s) === wantConstants);
+        const symbols = level === 'table' ? data.sql.map(sqlAsSymbol)
+            : (level === 'firebase' ? data.firebase.map(firebaseAsSymbol) : data.state.filter(s => isConstantSymbol(s) === wantConstants));
         symbols.forEach(s => {
             if (s.is_native && !options.native) return;
             if (s.visibility && s.visibility !== 'public' && !options.nonPublic) return;
@@ -325,25 +358,25 @@ $isCross = $dsmMode === 'maltese';
             const declaredClass = s.declared_in || (OWNERLESS_TYPES.includes(s.symbol_type) ? '' : s.class_name);
             const row = getOrSet(m.rowEls, id, () => ({
                 id,
-                name: id.includes('::') ? id.substring(id.indexOf('::') + 2) : id,
-                context: (declaredClass ? declaredClass + ' · ' : '') + s.symbol_type,
+                name: s.label ?? (id.includes('::') ? id.substring(id.indexOf('::') + 2) : id),
+                context: s.context ?? ((declaredClass ? declaredClass + ' · ' : '') + s.symbol_type),
                 ns: declaredClass ? anaNamespaceOf(declaredClass) : '[Global]',
                 cls: declaredClass,
             }));
             const consumer = describe(options.usedBy, s.class_name, s.method_fqn);
             getOrSet(m.colEls, consumer.id, () => consumer);
 
-            const meta = getOrSet(m.rowMeta, id, () => ({ classes: new Set(), written: false, writers: new Set(), unknown: id.includes('{?}') }));
+            const meta = getOrSet(m.rowMeta, id, () => ({ classes: new Set(), written: false, writers: new Set(), unknown: s.unknownRow ?? id.includes('{?}') }));
             const userClass = s.class_name !== '' ? s.class_name : functionClassOf(s.method_fqn);
             meta.classes.add(userClass);
             const isWrite = ['Write', 'Read/Write', 'DDL'].includes(s.access);
             meta.written ||= isWrite;
-            if (isWrite) meta.writers.add(userClass);
+            if (isWrite && (s.collides ?? true)) meta.writers.add(userClass);
 
             const cell = addCell(m, id, consumer.id, 'state', 0, { kind: 'state', who: s.method_fqn, access: s.operation ?? s.access, snippet: s.snippet ?? '' });
             cell.methods ??= new Set();
             cell.letters ??= new Set();
-            (ACCESS_LETTERS[s.access] ?? []).forEach(letter => cell.letters.add(letter));
+            (s.letters ?? ACCESS_LETTERS[s.access] ?? []).forEach(letter => cell.letters.add(letter));
             cell.call ||= s.access === 'Call';
             cell.methods.add(s.method_fqn);
             cell.n = cell.methods.size;
@@ -513,10 +546,16 @@ $isCross = $dsmMode === 'maltese';
 
     const cellText = (m, cell) => {
         if (m.square) return cell.n > 999 ? '1k+' : String(cell.n);
-        const letters = [...cell.letters].filter(letter => CROSS || letter !== 'R').sort((x, y) => LETTER_ORDER.indexOf(x) - LETTER_ORDER.indexOf(y)).join('');
+        const order = LETTER_ORDER[m.level] ?? 'RWDC';
+        // The W of a Firebase use only serves the filter: its letter says what it does
+        const letters = [...cell.letters].filter(letter => (CROSS || letter !== 'R') && !(m.level === 'firebase' && letter === 'W'))
+            .sort((x, y) => order.indexOf(x) - order.indexOf(y)).join('');
         return CROSS ? letters + (cell.n > 1 ? '×' + cell.n : '') : cell.n + letters;
-        return cell.n > 999 ? '1k+' : String(cell.n);
     };
+    // The same for the page: a Firebase cell colors each letter by what it does
+    const cellHtml = (m, cell) => m.level === 'firebase'
+        ? cellText(m, cell).replace(/[ROCAX]/g, letter => `<span class="L-${letter}">${letter}</span>`)
+        : escapeHtml(cellText(m, cell));
 
     function render() {
         const level = $('selLevel').value;
@@ -540,7 +579,7 @@ $isCross = $dsmMode === 'maltese';
             return;
         }
         if (rows.length === 0 || cols.length === 0) {
-            $('scroll').innerHTML = `<div class="dsm-message">Nothing to show. ${focus.length ? 'The focus matches no row here, or what it matches has no dependencies. Check the level and the side of the focus.' : (level === 'table' && data.sql.length === 0 ? 'No SQL was recorded. Run the analysis again.' : 'The analysis has no dependencies at this level.')}</div>`;
+            $('scroll').innerHTML = `<div class="dsm-message">Nothing to show. ${focus.length ? 'The focus matches no row here, or what it matches has no dependencies. Check the level and the side of the focus.' : (LETTER_LEVELS.includes(level) && ({ table: data.sql, firebase: data.firebase }[level]).length === 0 ? 'Nothing was recorded for this. Run the analysis again.' : 'The analysis has no dependencies at this level.')}</div>`;
             renderSummary(0, 0);
             return;
         }
@@ -582,7 +621,7 @@ $isCross = $dsmMode === 'maltese';
                 const verdict = decideCell(model, a, row.id, col.id, cell, heavyFloor);
                 rowSum += cell.n;
                 colSums.set(col.id, colSums.get(col.id) + cell.n);
-                rowHtml += `<td class="n ${verdict.code}${gs}">${cellText(model, cell)}</td>`;
+                rowHtml += `<td class="n ${verdict.code}${gs}">${cellHtml(model, cell)}</td>`;
             });
             html += `<tr class="${group ? 'gs' : ''}"><th class="row ${flag.code}" data-side="rows" data-i="${r}" title="${escapeHtml(row.id + (row.context ? ' · ' + row.context : '') + (flag.reason ? '\n' + flag.reason : ''))}"><span class="idx">${r + 1}</span>${escapeHtml(row.name)}<span class="ctx">${escapeHtml(row.context)}</span></th>${rowHtml}<td class="sum">${rowSum}</td></tr>`;
         });
@@ -605,6 +644,7 @@ $isCross = $dsmMode === 'maltese';
         namespace: 'Namespaces', class: 'Classes', method: 'Methods and functions',
         property: 'Properties and variables (rows) · ' + $('selUsedBy').selectedOptions[0].text.toLowerCase() + ' using them (columns)',
         constant: 'Constants (rows) · ' + $('selUsedBy').selectedOptions[0].text.toLowerCase() + ' using them (columns)',
+        firebase: 'Firebase paths (rows) · ' + $('selUsedBy').selectedOptions[0].text.toLowerCase() + ' using them (columns)',
         table: 'Tables and procedures (rows) · ' + $('selUsedBy').selectedOptions[0].text.toLowerCase() + ' using them (columns)',
     }[level]);
 
@@ -630,6 +670,10 @@ $isCross = $dsmMode === 'maltese';
     }
 
     function renderLegend(square) {
+        if (CROSS_LEVEL === 'firebase') {
+            $('legend').innerHTML = '<span class="worst">pink: several classes overwrite, delete or change it</span><span class="bad">O: overwrites the path and everything under it</span><span class="bad">X: deletes it and everything under it</span><span class="hot">C: changes only the children it names</span><span class="ok">A: appends a new child</span><span class="normal">R: reads it</span><span class="hot">amber {?}: path not known</span>';
+            return;
+        }
         if (CROSS) {
             $('legend').innerHTML = '<span class="worst">pink: several classes write the table</span><span class="bad">W: writes it, RW: reads it and writes it</span><span class="normal">R: only reads it</span><span class="bad" style="font-weight:400">D: DDL</span><span class="hot">C: calls a procedure</span><span class="hot">amber {?}: table not known, the name is built at run time</span>';
             return;
@@ -691,9 +735,15 @@ $isCross = $dsmMode === 'maltese';
         $('grpDependencies').hidden = !square;
         $('grpState').hidden = square;
         $('lblLevel').hidden = CROSS;
-        $('lblAccess').hidden = level !== 'table';
-        $('chkNonPublic').disabled = level === 'table';
-        $('chkNative').disabled = level === 'table';
+        const isLetterLevel = LETTER_LEVELS.includes(level);
+        $('lblAccess').hidden = !isLetterLevel;
+        $('chkNonPublic').disabled = isLetterLevel;
+        $('chkNative').disabled = isLetterLevel;
+        if (isLetterLevel) {
+            const chosen = $('selAccess').value;
+            $('selAccess').innerHTML = ACCESS_FILTERS[level].map(([value, label]) => `<option value="${value}">${label}</option>`).join('');
+            if (ACCESS_FILTERS[level].some(([value]) => value === chosen)) $('selAccess').value = chosen;
+        }
         $('chkInherit').disabled = level === 'method';
         $('chkTypeHint').disabled = level === 'method';
         const layered = [...$('selOrder').options].find(option => option.value === 'layered');
@@ -715,7 +765,7 @@ $isCross = $dsmMode === 'maltese';
             nonPublic: $('chkNonPublic').checked,
             native: $('chkNative').checked,
             shared: $('chkShared').checked,
-            access: $('selLevel').value === 'table' ? $('selAccess').value : 'all',
+            access: LETTER_LEVELS.includes($('selLevel').value) ? $('selAccess').value : 'all',
         };
     }
 
@@ -756,7 +806,7 @@ $isCross = $dsmMode === 'maltese';
         const params = new URLSearchParams();
         params.set('level', $('selLevel').value);
         if (!isSquare($('selLevel').value)) params.set('usedBy', $('selUsedBy').value);
-        if ($('selLevel').value === 'table') params.set('access', $('selAccess').value);
+        if (LETTER_LEVELS.includes($('selLevel').value)) params.set('access', $('selAccess').value);
         if (focus.length) params.set('focus', focus.join(','));
         params.set('side', $('selSide').value);
         params.set('order', $('selOrder').value);
@@ -770,7 +820,7 @@ $isCross = $dsmMode === 'maltese';
         view.rows.forEach(row => lines.push([quote(row.id), ...view.cols.map(col => { const cell = model.cells.get(row.id)?.get(col.id); return cell ? quote(cellText(model, cell)) : ''; })].join(',')));
         const link = document.createElement('a');
         link.href = URL.createObjectURL(new Blob([lines.join('\n')], { type: 'text/csv' }));
-        link.download = CROSS ? 'maltese_cross.csv' : 'dependency_matrix.csv';
+        link.download = CROSS_LEVEL === 'firebase' ? 'firebase_cross.csv' : (CROSS ? 'maltese_cross.csv' : 'dependency_matrix.csv');
         link.click();
         URL.revokeObjectURL(link.href);
     }
@@ -798,15 +848,15 @@ $isCross = $dsmMode === 'maltese';
     function init() {
         const params = new URLSearchParams(location.search);
         if (CROSS) {
-            $('selLevel').value = 'table';
+            $('selLevel').value = CROSS_LEVEL;
             $('selUsedBy').value = 'method';
         }
         if (params.get('level') && !CROSS) $('selLevel').value = params.get('level');
         if (params.get('usedBy')) $('selUsedBy').value = params.get('usedBy');
-        if (params.get('access')) $('selAccess').value = params.get('access');
         if (params.get('order')) $('selOrder').value = params.get('order');
         focus = (params.get('focus') ?? '').split(',').map(name => name.trim()).filter(Boolean);
         syncControls();
+        if (params.get('access')) $('selAccess').value = params.get('access');
         if (params.get('side')) $('selSide').value = params.get('side');
 
         ['selLevel', 'selUsedBy', 'selAccess', 'chkCalls', 'chkInherit', 'chkTypeHint', 'chkExternal', 'chkNonPublic', 'chkNative', 'chkShared']
@@ -834,10 +884,10 @@ $isCross = $dsmMode === 'maltese';
 
         const read = (url) => fetch(url).then(res => { if (!res.ok) throw new Error(url + ': ' + res.status); return res.json(); });
         // The SQL is optional: a database analyzed before it was recorded has none
-        Promise.all([read('api/callGraph.php'), read('api/globalsReport.php'), read('api/dsm.php'), read('api/sqlReport.php').catch(() => [])])
-            .then(([calls, state, structure, sql]) => {
+        Promise.all([read('api/callGraph.php'), read('api/globalsReport.php'), read('api/dsm.php'), read('api/sqlReport.php').catch(() => []), read('api/firebaseReport.php').catch(() => [])])
+            .then(([calls, state, structure, sql, firebase]) => {
                 data = {
-                    calls, state, sql,
+                    calls, state, sql, firebase,
                     classes: structure.classes,
                     methods: structure.methods,
                     relations: structure.relations,

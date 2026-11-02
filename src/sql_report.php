@@ -12,6 +12,9 @@
         .sql-read { color: #1f4e8c; }
         .sql-many { color: #b00020; font-weight: 800; text-decoration: underline; }
         .sql-muted { font-weight: normal; color: #495057; }
+        /* Tabulator colors the text of a group header red: here red is kept for what needs attention */
+        .tabulator-row.tabulator-group span.sql-muted { color: #495057; }
+        .tabulator-row.tabulator-group span.sql-many { color: #b00020; }
     </style>
 </head>
 <body class="ana-table-page">

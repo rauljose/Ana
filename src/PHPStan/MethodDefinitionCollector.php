@@ -8,7 +8,7 @@ use PHPStan\Analyser\Scope;
 use PHPStan\Collectors\Collector;
 
 /**
- * @implements Collector<Node\FunctionLike, array{class: string, method: string, visibility: string, static: int, builtin: int, cyclo: int, cog: int, pure: int, num_params: int, num_defaults: int, has_sensitive: int, num_ref_params: int, num_obj_params: int, return_type: string, is_ends: int, signature: string, doc_comment: string|null, globals: list<array{type: string, name: string, access: string}>, type_hints: list<string>, prop_access: list<array{prop: string, type: string}>, sql: list<array{operation: string, object_type: string, object_name: string, access: string, is_dynamic: int, source: string, snippet: string}>}>
+ * @implements Collector<Node\FunctionLike, array{class: string, method: string, visibility: string, static: int, builtin: int, cyclo: int, cog: int, pure: int, num_params: int, num_defaults: int, has_sensitive: int, num_ref_params: int, num_obj_params: int, return_type: string, is_ends: int, signature: string, doc_comment: string|null, globals: list<array{type: string, name: string, access: string}>, type_hints: list<string>, prop_access: list<array{prop: string, type: string}>, sql: list<array{operation: string, object_type: string, object_name: string, access: string, is_dynamic: int, source: string, snippet: string}>, firebase: list<array{service: string, object_type: string, path: string, operation: string, access: string, mode: string, is_dynamic: int, snippet: string}>}>
  */
 class MethodDefinitionCollector implements Collector
 {
@@ -146,7 +146,9 @@ class MethodDefinitionCollector implements Collector
         $signature = rtrim($printer->prettyPrint([$sigNode]), "; \n\r\t");
 
         list($cyclo, $cog, $globals, $propAccess) = $this->analyzeMethodBody($stmts);
-        $sql = (new SqlUsageFinder())->find($stmts, fn(Node $constant): ?string => $this->constantString($constant, $scope));
+        $constantString = fn(Node $constant): ?string => $this->constantString($constant, $scope);
+        $sql = (new SqlUsageFinder())->find($stmts, $constantString);
+        $firebase = (new FirebaseUsageFinder())->find($stmts, $constantString, $node->getParams());
 
         return [
           'class' => $className,
@@ -170,6 +172,7 @@ class MethodDefinitionCollector implements Collector
           'type_hints' => array_values(array_unique($typeHints)),
           'prop_access' => $propAccess,
           'sql' => $sql,
+          'firebase' => $firebase,
         ];
     }
 

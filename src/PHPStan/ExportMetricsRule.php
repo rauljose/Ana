@@ -135,6 +135,11 @@ class ExportMetricsRule implements Rule
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         ");
 
+        $stmtFirebase = $mysqli->prepare("
+            INSERT INTO method_firebase (class_name, method_name, service, object_type, path, operation, access, mode, is_dynamic, snippet)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ");
+
         foreach ($definitions as $file => $fileDefs) {
             foreach ($fileDefs as $def) {
                 $stmtMethod->execute([
@@ -151,6 +156,12 @@ class ExportMetricsRule implements Rule
                     $stmtSql->execute([
                         $def['class'], $def['method'], $sql['operation'], $sql['object_type'], $sql['object_name'],
                         $sql['access'], $sql['is_dynamic'], $sql['source'], $sql['snippet'],
+                    ]);
+                }
+                foreach ($def['firebase'] as $firebase) {
+                    $stmtFirebase->execute([
+                        $def['class'], $def['method'], $firebase['service'], $firebase['object_type'], $firebase['path'],
+                        $firebase['operation'], $firebase['access'], $firebase['mode'], $firebase['is_dynamic'], $firebase['snippet'],
                     ]);
                 }
                 foreach ($def['type_hints'] as $targetClass) {
