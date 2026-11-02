@@ -35,7 +35,7 @@ final class SqlUsageFinder
                 $found[$key] ??= $usage + ['source' => $source, 'snippet' => $snippet];
             }
         };
-        $fold = fn(Node $node): ?string => $this->fold($node, $constantValue);
+        $fold = fn(Node $node): ?string => StringFolder::fold($node, $constantValue);
 
         $visitor = new class($fold, $record) extends NodeVisitorAbstract {
             public function __construct(private readonly \Closure $fold, private readonly \Closure $record) {}
@@ -89,17 +89,5 @@ final class SqlUsageFinder
         $traverser = new NodeTraverser($visitor);
         $traverser->traverse($statements);
         return array_values($found);
-    }
-
-    // The text of a string expression; null when there is none. A part that is not known becomes SqlStatements::DYNAMIC
-    private function fold(Node $node, callable $constantValue): ?string
-    {
-        return match (true) {
-            $node instanceof Node\Scalar\String_, $node instanceof Node\InterpolatedStringPart => $node->value,
-            $node instanceof Node\Scalar\InterpolatedString => implode('', array_map(fn(Node $part): string => $this->fold($part, $constantValue) ?? SqlStatements::DYNAMIC, $node->parts)),
-            $node instanceof Node\Expr\BinaryOp\Concat => ($this->fold($node->left, $constantValue) ?? SqlStatements::DYNAMIC) . ($this->fold($node->right, $constantValue) ?? SqlStatements::DYNAMIC),
-            $node instanceof Node\Expr\ClassConstFetch, $node instanceof Node\Expr\ConstFetch => $constantValue($node),
-            default => null,
-        };
     }
 }
