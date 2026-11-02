@@ -1,8 +1,8 @@
 # Ana
 
-Static metrics for PHP projects. 
+Static Analysis: metrics, visualization & graphs for PHP projects. 
 
-A PHPStan plugin records classes, methods, calls, properties and globals in MySQL; PHP pages then show metrics, graphs and review lists.
+A PHPStan plugin records namespaces, classes, methods, calls, properties and globals in MySQL; PHP pages then show metrics, graphs, call graphs and review lists.
 
 Needs PHP 8.4+, `ext-mysqli`, MySQL 8, [PHPStan](https://phpstan.org) 2.3+.
 

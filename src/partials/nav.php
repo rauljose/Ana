@@ -18,7 +18,8 @@ try {
 $anaCurrentPage = basename($_SERVER['SCRIPT_NAME']);
 ?>
 <nav class="ana-nav">
-    <span class="ana-brand">Ana</span>
+
+    <span class="ana-brand"><img src="ana-icon.svg" style="width:1.6em;height:auto;border:none;margin-right:0;" alt="Logo">Ana</span>
     <span class="ana-project" title="Analyzed <?= htmlspecialchars($anaAnalyzedAt) ?>">
         Project: <strong><?= htmlspecialchars($anaProjectName !== '' ? $anaProjectName : 'unknown') ?></strong>
     </span>

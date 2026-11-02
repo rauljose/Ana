@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+<title id="title">Ana — code structure icon</title>
+<desc id="desc">A geometric capital A formed by a network of connected nodes with one accented insight node.</desc>
+<rect width="256" height="256" rx="52" fill="#111827"/>
+<g stroke="#8FA9C4" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" fill="none">
+<path d="M53 202 128 48 203 202"/>
+<path d="M80 149h96"/>
+</g>
+<g fill="#E4EDF7">
+<circle cx="128" cy="48" r="14"/>
+<circle cx="53" cy="202" r="14"/>
+<circle cx="203" cy="202" r="14"/>
+<circle cx="80" cy="149" r="12"/>
+<circle cx="176" cy="149" r="12"/>
+</g>
+<circle cx="128" cy="149" r="17" fill="#2DD4BF"/>
+<circle cx="128" cy="149" r="5" fill="#111827"/>
+</svg>

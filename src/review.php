@@ -17,10 +17,7 @@
     <h1>Review</h1>
     <p class="ana-subtitle">The short list of things worth a look first. Change a threshold and every list updates; the values are saved.</p>
 
-    <div class="ana-thresholds" id="reviewInputs">
-        <button id="reviewReset" title="Put every threshold back to its default">Defaults</button>
-        <span class="ana-status" id="reviewStatus">Loading...</span>
-    </div>
+
 
     <div class="ana-summary" id="reviewSummary"></div>
 
@@ -95,6 +92,11 @@
         <div class="ana-thresholds" id="usedNamespacesInputs"></div>
         <div id="usedNamespacesTable"></div>
     </section>
+</div>
+
+<div class="ana-thresholds" id="reviewInputs">
+    <button id="reviewReset" title="Put every threshold back to its default">Defaults</button>
+    <span class="ana-status" id="reviewStatus">Loading...</span>
 </div>
 
 <script>
