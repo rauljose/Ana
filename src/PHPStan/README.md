@@ -7,6 +7,7 @@ Runs inside `phpstan analyse` and stores what it finds about the analyzed projec
 | `ClassDefinitionCollector` | Classes, interfaces and traits: modifiers, extends, implements, traits used, properties and class constants (visibility, static, type, doc comment) |
 | `MethodDefinitionCollector` | Methods and functions: signature, cyclomatic and cognitive complexity, parameters, return type, purity, `#[SensitiveParameter]`, properties, superglobals, `global` variables and constants read or written |
 | `MethodCallCollector` | Calls between methods and functions (caller, callee, native or not) |
+| `SqlUsageFinder`, `SqlStatements` | Used by `MethodDefinitionCollector`: the SQL in each method (strings that read as SQL, and the Sqler `insert()`, `update()` and `junctionTable()` helpers): operation and table or procedure |
 | `ExportMetricsRule` | Receives everything the collectors gathered and writes it to MySQL in one transaction |
 
 ## Wire it

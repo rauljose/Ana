@@ -37,7 +37,7 @@ Then serve `src/` with Apache or `php -S localhost:8000 -t src` and open `index.
 | Namespaces | Namespace Metrics | Size, complexity, coupling and cycles per namespace |
 | Classes | Class Metrics, Class Graphs | Every class metric; Zone of Pain and health radar |
 | Methods | Method Metrics, Method Graphs, Public Method Consumers, Change Impact | Every method metric; hotspots; who uses each public method; callers of a method |
-| State | Globals Report, Method Globals, Shared State | Globals, superglobals, constants and static properties, and who reads or writes them |
+| State | Globals Report, Method Globals, Shared State, SQL Report | Globals, superglobals, constants and static properties, and who reads or writes them; the SQL in the code: which methods read, change, call or define each table and procedure |
 | Dependencies | Call Graph, Dependency Matrix, Dependency Cycles | Calls between namespaces, classes or methods; the same as a matrix, for a focus, with cycles and heavy dependencies in color; groups that depend on each other |
 
 Every class, method and namespace name links to its detail page (`detail.php`). Tables can be filtered, sorted, exported to CSV, and their column layouts saved.
@@ -45,6 +45,10 @@ Every class, method and namespace name links to its detail page (`detail.php`). 
 ## How it works
 
 `src/PHPStan` holds three collectors (classes, methods, calls) and `ExportMetricsRule`, which writes them to the `ana` database. `src/api` serves the tables as JSON and `src/*.php` pages render them with [Tabulator](https://tabulator.info) and [ECharts](https://echarts.apache.org). Pages load both from a CDN.
+
+## SQL
+
+The plugin also reads the SQL a method holds, in string literals, concatenations of literals and class constants, heredocs and interpolated strings, and the Sqler `insert()`, `update()` and `junctionTable()` helpers. It records SELECT, INSERT, UPDATE, DELETE, REPLACE, TRUNCATE, CALL and CREATE, ALTER, DROP, RENAME by table or procedure (a table named by a variable shows as `?`). The text is read, not run or fully parsed, and it counts for the method that holds it. The helper names are in `src/PHPStan/SqlUsageFinder.php`. A database analyzed before this needs `db/db_schema.sql` run again.
 
 ## Limits
 

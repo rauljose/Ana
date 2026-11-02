@@ -117,6 +117,7 @@
             <option value="method">Method / function</option>
             <option value="property">Public &amp; global properties and variables</option>
             <option value="constant">Constants</option>
+            <option value="table">Database tables and procedures</option>
         </select>
     </label>
 
@@ -279,16 +280,30 @@
         return s.declared_in + '::' + (s.is_declared_constant ? s.symbol : '$' + s.symbol.replace(/^\$/, ''));
     };
 
+    // A SQL use in the shape of a state use, so tables and procedures go through the same matrix
+    const sqlAsSymbol = (row) => ({
+        symbol_type: row.object_type === 'procedure' ? 'Procedure' : 'Table',
+        symbol: row.object_name,
+        symbol_fqn: row.object_name,
+        access: row.access,
+        operation: row.operation,
+        snippet: row.snippet,
+        class_name: row.class_name,
+        method_fqn: row.method_fqn,
+    });
+    // What belongs to no class: its rows are not filed under the class of the first one that uses it
+    const OWNERLESS_TYPES = ['Global variable', 'Superglobal variable', 'Constant', 'Table', 'Procedure'];
+    const ACCESS_LETTER = { Read: '', Write: 'W', 'Read/Write': 'W', Call: 'C', DDL: 'D' };
+
     function buildRect(level, options) {
         const m = newModel(false);
         const wantConstants = level === 'constant';
-        data.state.forEach(s => {
-            if (isConstantSymbol(s) !== wantConstants) return;
-            if (s.is_native && !options.native) return;
+        const symbols = level === 'table' ? data.sql.map(sqlAsSymbol) : data.state.filter(s => isConstantSymbol(s) === wantConstants);
+        symbols.forEach(s => {            if (s.is_native && !options.native) return;
             if (s.visibility && s.visibility !== 'public' && !options.nonPublic) return;
 
             const id = symbolId(s);
-            const declaredClass = s.declared_in || s.class_name;
+            const declaredClass = s.declared_in || (OWNERLESS_TYPES.includes(s.symbol_type) ? '' : s.class_name);
             const row = getOrSet(m.rowEls, id, () => ({
                 id,
                 name: id.includes('::') ? id.substring(id.indexOf('::') + 2) : id,
@@ -302,12 +317,15 @@
             const meta = getOrSet(m.rowMeta, id, () => ({ classes: new Set(), written: false, writers: new Set() }));
             const userClass = s.class_name !== '' ? s.class_name : functionClassOf(s.method_fqn);
             meta.classes.add(userClass);
-            const isWrite = s.access !== 'Read';
+            const isWrite = ['Write', 'Read/Write', 'DDL'].includes(s.access);
             meta.written ||= isWrite;
             if (isWrite) meta.writers.add(userClass);
 
-            const cell = addCell(m, id, consumer.id, 'state', 0, { kind: 'state', who: s.method_fqn, access: s.access });
+            const cell = addCell(m, id, consumer.id, 'state', 0, { kind: 'state', who: s.method_fqn, access: s.operation ?? s.access, snippet: s.snippet ?? '' });
             cell.methods ??= new Set();
+            cell.letters ??= new Set();
+            if (ACCESS_LETTER[s.access]) cell.letters.add(ACCESS_LETTER[s.access]);
+            cell.call ||= s.access === 'Call';
             cell.methods.add(s.method_fqn);
             cell.n = cell.methods.size;
             cell.write ||= isWrite;
@@ -387,6 +405,7 @@
                     ? { code: 'w', reason: 'Written, and used from more than one class: hidden coupling' }
                     : { code: 'u', reason: 'Written, but only one class uses it' };
             }
+            if (cell.call) return { code: 'u', reason: 'Calls a stored procedure: it can change anything' };
             return cell.n >= heavyFloor ? { code: 'h', reason: 'Read by many methods' } : { code: 'r', reason: 'Read' };
         }
         if (m.cells.get(colId)?.has(rowId)) return { code: 'm', reason: 'Mutual dependency: each one depends on the other' };
@@ -461,7 +480,7 @@
     // ---------- Render ----------
 
     const cellText = (m, cell) => {
-        if (!m.square) return cell.n + (cell.write ? 'W' : '');
+        if (!m.square) return cell.n + [...cell.letters].sort().join('');
         return cell.n > 999 ? '1k+' : String(cell.n);
     };
 
@@ -487,7 +506,7 @@
             return;
         }
         if (rows.length === 0 || cols.length === 0) {
-            $('scroll').innerHTML = `<div class="dsm-message">Nothing to show. ${focus.length ? 'The focus matches no row here, or what it matches has no dependencies. Check the level and the side of the focus.' : 'The analysis has no dependencies at this level.'}</div>`;
+            $('scroll').innerHTML = `<div class="dsm-message">Nothing to show. ${focus.length ? 'The focus matches no row here, or what it matches has no dependencies. Check the level and the side of the focus.' : (level === 'table' && data.sql.length === 0 ? 'No SQL was recorded. Create the database again with db/db_schema.sql and run the analysis again.' : 'The analysis has no dependencies at this level.')}</div>`;
             renderSummary(0, 0);
             return;
         }
@@ -552,6 +571,7 @@
         namespace: 'Namespaces', class: 'Classes', method: 'Methods and functions',
         property: 'Properties and variables (rows) · ' + $('selUsedBy').selectedOptions[0].text.toLowerCase() + ' using them (columns)',
         constant: 'Constants (rows) · ' + $('selUsedBy').selectedOptions[0].text.toLowerCase() + ' using them (columns)',
+        table: 'Tables and procedures (rows) · ' + $('selUsedBy').selectedOptions[0].text.toLowerCase() + ' using them (columns)',
     }[level]);
 
     function renderSummary(rowCount, colCount, total = 0) {
@@ -566,7 +586,8 @@
             if (hubs > 0) parts.push(`<span class="hot">${hubs} most depended on (${a.hubFloor}+ dependents)</span>`);
         } else {
             if (a.severe > 0) parts.push(`<span class="worst">${a.severe} written from 2+ classes</span>`);
-            parts.push(a.written > 0 ? `<span class="bad">${a.written} with one writer, used from 2+ classes</span>` : '<span class="ok">Nothing written and shared between classes</span>');
+            if (a.written > 0) parts.push(`<span class="bad">${a.written} with one writer, used from 2+ classes</span>`);
+            if (a.written + a.severe === 0) parts.push('<span class="ok">Nothing written and shared between classes</span>');
         }
         const unmatched = focus.filter(name => ![...model.rowEls.values(), ...model.colEls.values()].some(el => matchesFocus(el, [name])));
         if (unmatched.length > 0) parts.push(`<span class="hot">No match at this level: ${escapeHtml(unmatched.join(', '))}</span>`);
@@ -577,13 +598,13 @@
     function renderLegend(square) {
         $('legend').innerHTML = square
             ? '<span class="bad">red bold on pink: mutual dependency</span><span class="bad" style="font-weight:400">red: same cycle</span><span class="heavy">blue bold: heavy</span><span class="normal">blue: dependency</span><span class="light">grey-blue: a single one</span><span>grey cell: inside itself</span><span class="bad">red name: in a cycle</span><span class="hot">amber name: many depend on it</span>'
-            : '<span class="worst">pink W: several classes write it</span><span class="bad">red W: written, shared by 2+ classes</span><span class="hot">amber W: written, one class only</span><span class="heavy">blue bold: read by many methods</span><span class="normal">blue: read</span><span class="worst">pink name: several writers</span><span class="bad">red name: written and shared</span><span class="hot">amber name: read from 2+ classes</span>';
+            : '<span class="worst">pink W: several classes write it</span><span class="bad">red W: written, shared by 2+ classes</span><span class="hot">amber W: written, one class only</span><span class="bad" style="font-weight:400">D: DDL, counts as a write</span><span class="hot">amber C: calls a procedure</span><span class="heavy">blue bold: read by many methods</span><span class="normal">blue: read</span><span class="worst">pink name: several writers</span><span class="bad">red name: written and shared</span><span class="hot">amber name: read from 2+ classes</span>';
     }
 
     // ---------- Detail: evidence of a cell, neighbours of a header ----------
 
     const evidenceLine = (item) => item.kind === 'state'
-        ? `<tr><td>${escapeHtml(item.access)}</td><td>${escapeHtml(item.who)}</td></tr>`
+        ? `<tr><td>${escapeHtml(item.access)}</td><td>${escapeHtml(item.who)}</td><td class="hint">${escapeHtml(item.snippet ?? '')}</td></tr>`
         : `<tr><td>${escapeHtml(KIND_LABEL[item.kind] ?? item.kind)}</td><td>${escapeHtml(item.from)}</td><td>→ ${escapeHtml(item.to)}</td><td>${item.weight > 1 ? '×' + item.weight : ''}</td></tr>`;
 
     function showCell(r, c) {
@@ -631,6 +652,8 @@
         const square = isSquare(level);
         $('grpDependencies').hidden = !square;
         $('grpState').hidden = square;
+        $('chkNonPublic').disabled = level === 'table';
+        $('chkNative').disabled = level === 'table';
         $('chkInherit').disabled = level === 'method';
         $('chkTypeHint').disabled = level === 'method';
         const layered = [...$('selOrder').options].find(option => option.value === 'layered');
@@ -763,10 +786,11 @@
         });
 
         const read = (url) => fetch(url).then(res => { if (!res.ok) throw new Error(url + ': ' + res.status); return res.json(); });
-        Promise.all([read('api/callGraph.php'), read('api/globalsReport.php'), read('api/dsm.php')])
-            .then(([calls, state, structure]) => {
+        // The SQL is optional: a database analyzed before it was recorded has none
+        Promise.all([read('api/callGraph.php'), read('api/globalsReport.php'), read('api/dsm.php'), read('api/sqlReport.php').catch(() => [])])
+            .then(([calls, state, structure, sql]) => {
                 data = {
-                    calls, state,
+                    calls, state, sql,
                     classes: structure.classes,
                     methods: structure.methods,
                     relations: structure.relations,

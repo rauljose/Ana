@@ -93,6 +93,23 @@ CREATE TABLE IF NOT EXISTS method_property_access (
     UNIQUE KEY idx_method_prop_access (class_name, method_name, property_name, access_type)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+-- The SQL each method or function holds: what it reads, changes, calls or defines, by table or procedure
+DROP TABLE IF EXISTS method_sql;
+CREATE TABLE IF NOT EXISTS method_sql (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    class_name VARCHAR(255) NOT NULL,
+    method_name VARCHAR(255) NOT NULL,
+    operation VARCHAR(20) NOT NULL,
+    object_type VARCHAR(12) NOT NULL,
+    object_name VARCHAR(255) NOT NULL,
+    access ENUM('READ', 'WRITE', 'CALL', 'DDL') NOT NULL,
+    is_dynamic TINYINT(1) NOT NULL DEFAULT 0,
+    source ENUM('SQL', 'HELPER') NOT NULL DEFAULT 'SQL',
+    snippet VARCHAR(255) NOT NULL DEFAULT '',
+    KEY idx_method_sql_method (class_name, method_name),
+    KEY idx_method_sql_object (object_name)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
 -- User settings live apart from the analysis data: no DROP, so re-running this file keeps the layouts
 CREATE TABLE IF NOT EXISTS user_layouts (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
