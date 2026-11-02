@@ -176,7 +176,7 @@ body.ana-index-page, body.ana-review-page {
 .ana-dialog-error { margin: 0 0 8px; color: #dc3545; font-size: 0.85rem; min-height: 1.1em; }
 
 /* --- Review page --- */
-.ana-review { max-width: 1400px; margin: 0 auto; padding: 20px; }
+.ana-review { max-width: 98vw; margin: 0 auto; padding: 20px; }
 .ana-review h1 { margin: 0 0 4px; font-size: 1.5rem; }
 .ana-review .ana-subtitle { margin: 0 0 16px; color: #6c757d; font-size: 0.9rem; }
 .ana-thresholds { display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end; background: var(--panel-bg); border: 1px solid var(--border-color); border-radius: 6px; padding: 12px 16px; margin-bottom: 16px; }
