@@ -10,7 +10,7 @@ Needs PHP 8.4+, `ext-mysqli`, MySQL 8, [PHPStan](https://phpstan.org) 2.3+.
 
 1. `composer install`
 2. Set the MySQL credentials in `src/config/config.php`. The database and its tables are created the first time a page, an API or the analysis connects, and any table a later update adds is created the same way: nothing to install by hand. Existing tables and their data are never touched.
-3. `php src/PHPStan/create_db.php` starts the analysis tables over (after a table gained a column, or to wipe a previous analysis); saved layouts and settings are kept.
+3. Db schema is auto created. Optionally create it. `php src/PHPStan/create_db.php` starts the analysis tables over (after a table gained a column, or to wipe a previous analysis); saved layouts and settings are kept.
 4. In `phpstan.neon` set `anaProjectName`, `paths` (the code to analyze) and `bootstrapFiles` (its autoloader).
 
 ## Run
@@ -18,11 +18,13 @@ Needs PHP 8.4+, `ext-mysqli`, MySQL 8, [PHPStan](https://phpstan.org) 2.3+.
 ```sh
 vendor/bin/phpstan clear-result-cache
 vendor/bin/phpstan analyse
+
 ```
 On Windows
 ```sh
-vendor\bin\phpsta clear-result-cache
-vendor\bin\phpsta analyse
+vendor\bin\phpstan clear-result-cache
+vendor\bin\phpstan analyse
+
 ```
 
 
