@@ -18,6 +18,10 @@
     flex-shrink: 0;
     font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
+.ana-a-no-decoration {color: inherit;text-decoration: none;}
+.ana-a-no-decoration:hover {color: blue;text-decoration: none;}
+.ana-a-no-decoration:active {color: darkblue;text-decoration: none;}
+.ana-a-no-decoration:visited {color: inherit;text-decoration: none;}
 .ana-brand { font-weight: bold; font-size: 1.2rem; color: var(--accent); }
 .ana-project { font-size: 0.9rem; color: #495057; white-space: nowrap; }
 .ana-menu { display: flex; list-style: none; margin: 0 0 0 auto; padding: 0; gap: 4px; flex-wrap: wrap; }
@@ -110,7 +114,7 @@ body.ana-index-page, body.ana-review-page {
 /* Index page: one flexbox of summary boxes. Each box is at least 190px wide and sizes to its content (method names are long),
    never wider than the whole row. Boxes never grow: spare room stays blank after the last box of a row */
 .ana-stats-flexbox { display: flex; flex-wrap: wrap; gap: 14px; margin-bottom: 28px; }
-.ana-stat-item { flex: 0 1 auto; min-width: 190px; max-width: 100%; box-sizing: border-box; background: var(--panel-bg); border: 1px solid var(--border-color); border-radius: 6px; padding: 14px 16px; }
+.ana-stat-item { flex: 0 1 auto; min-width: 100px; max-width: 100%; text-align: center; box-sizing: border-box; background: var(--panel-bg); border: 1px solid var(--border-color); border-radius: 6px; padding: 14px 16px; }
 .ana-stat-item .value { font-size: 1.6rem; font-weight: bold; }
 .ana-stat-item .label { font-size: 0.85rem; color: #6c757d; }
 .ana-stat-item .max { margin-top: 6px; font-size: 0.85rem; color: #495057; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -127,7 +131,7 @@ body.ana-index-page, body.ana-review-page {
 .ana-index h2.ana-group { margin: 0 0 10px; font-size: 1.1rem; padding-bottom: 4px; border-bottom: 2px solid var(--accent); }
 /* Index page: one large flexbox; each subject (Namespaces, Classes, Methods...) is an item holding its page cards */
 .ana-groups-flexbox { display: flex; flex-wrap: wrap; gap: 28px 20px; align-items: flex-start; }
-.ana-group-item { flex: 0 1 380px; max-width: 320px; box-sizing: border-box; }
+.ana-group-item { flex: 0 1 380px; max-width: 280px; box-sizing: border-box; }
 .ana-group-item .ana-cards { display: flex; flex-direction: column; gap: 14px; }
 .ana-group-item .ana-card { cursor: pointer; }
 .ana-group-item .ana-card p { cursor: text; }
