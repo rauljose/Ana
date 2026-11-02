@@ -44,6 +44,7 @@
         .dsm-summary b { color: var(--text-main); }
         .dsm-summary .bad, .dsm-legend .bad { color: var(--dsm-bad); font-weight: 700; }
         .dsm-summary .hot, .dsm-legend .hot { color: var(--dsm-hot); font-weight: 700; }
+        .dsm-summary .worst, .dsm-legend .worst, .dsm-detail .worst { color: var(--dsm-bad); font-weight: 800; background: var(--dsm-bad-bg); text-decoration: underline; padding: 0 4px; }
         .dsm-summary .ok { color: var(--dsm-ok); font-weight: 700; }
         .dsm-summary #hoverInfo { margin-left: auto; color: var(--text-main); }
         .dsm-legend { display: flex; flex-wrap: wrap; gap: 4px 20px; padding: 5px 20px; font-size: 0.85rem; color: var(--dsm-muted); border-bottom: 1px solid var(--border-color); background: var(--panel-bg); flex-shrink: 0; }
@@ -60,12 +61,13 @@
         table.dsm td { min-width: var(--dsm-cell); width: var(--dsm-cell); height: 24px; text-align: center; color: var(--dsm-normal); cursor: default; font-variant-numeric: tabular-nums; }
         table.dsm td.n { cursor: pointer; }
         table.dsm tbody tr:hover td { background: var(--dsm-hover); }
-        table.dsm tbody tr:hover td.n.m, table.dsm tbody tr:hover td.n.w { background: var(--dsm-bad-bg); }
+        table.dsm tbody tr:hover td.n.m, table.dsm tbody tr:hover td.n.x, table.dsm tbody tr:hover td.n.w { background: var(--dsm-bad-bg); }
         table.dsm td.l { color: var(--dsm-light); }
         table.dsm td.h { color: var(--dsm-heavy); font-weight: 700; }
         table.dsm td.c { color: var(--dsm-bad); }
         table.dsm td.m { color: var(--dsm-bad); font-weight: 800; background: var(--dsm-bad-bg); }
         table.dsm td.w { color: var(--dsm-bad); font-weight: 800; }
+        table.dsm td.x { color: var(--dsm-bad); font-weight: 800; background: var(--dsm-bad-bg); text-decoration: underline; }
         table.dsm td.u { color: var(--dsm-hot); font-weight: 700; }
         table.dsm td.r { color: var(--dsm-normal); }
         table.dsm td.d { background: var(--dsm-diag-bg); color: var(--dsm-muted); }
@@ -86,6 +88,8 @@
         table.dsm .ctx { color: var(--dsm-muted); font-weight: 400; margin-left: 8px; font-size: 11px; }
         table.dsm th.bad, table.dsm th.bad .ctx { color: var(--dsm-bad); }
         table.dsm th.bad { font-weight: 800; }
+        table.dsm th.worst, table.dsm th.worst .ctx { color: var(--dsm-bad); }
+        table.dsm th.worst { font-weight: 800; background: var(--dsm-bad-bg); text-decoration: underline; }
         table.dsm th.hot, table.dsm th.hot .ctx { color: var(--dsm-hot); }
         table.dsm th.hot { font-weight: 800; }
         table.dsm th.hl { background: #ffe8a3; color: #000; }
@@ -295,10 +299,12 @@
             const consumer = describe(options.usedBy, s.class_name, s.method_fqn);
             getOrSet(m.colEls, consumer.id, () => consumer);
 
-            const meta = getOrSet(m.rowMeta, id, () => ({ classes: new Set(), written: false }));
-            meta.classes.add(s.class_name !== '' ? s.class_name : functionClassOf(s.method_fqn));
+            const meta = getOrSet(m.rowMeta, id, () => ({ classes: new Set(), written: false, writers: new Set() }));
+            const userClass = s.class_name !== '' ? s.class_name : functionClassOf(s.method_fqn);
+            meta.classes.add(userClass);
             const isWrite = s.access !== 'Read';
             meta.written ||= isWrite;
+            if (isWrite) meta.writers.add(userClass);
 
             const cell = addCell(m, id, consumer.id, 'state', 0, { kind: 'state', who: s.method_fqn, access: s.access });
             cell.methods ??= new Set();
@@ -321,13 +327,16 @@
     // ---------- Analysis of the full matrix: cycles, hubs, layers ----------
 
     function analyze(m) {
-        const a = { compOf: new Map(), cycleCount: 0, mutualPairs: 0, fanIn: new Map(), fanOut: new Map(), hubFloor: 3, rank: new Map(), written: 0 };
+        const a = { compOf: new Map(), cycleCount: 0, mutualPairs: 0, fanIn: new Map(), fanOut: new Map(), hubFloor: 3, rank: new Map(), written: 0, severe: 0 };
         m.cells.forEach((cols, rowId) => a.fanOut.set(rowId, cols.size));
         m.byCol.forEach((rows, colId) => a.fanIn.set(colId, rows.size));
         a.hubFloor = Math.max(3, percentile([...a.fanIn.values()], 0.9));
 
         if (!m.square) {
-            m.rowMeta.forEach(meta => { if (meta.written && meta.classes.size >= 2) a.written++; });
+            m.rowMeta.forEach(meta => {
+                if (meta.writers.size >= 2) a.severe++;
+                else if (meta.written && meta.classes.size >= 2) a.written++;
+            });
             return a;
         }
 
@@ -371,6 +380,8 @@
     function decideCell(m, a, rowId, colId, cell, heavyFloor) {
         if (!m.square) {
             if (cell.write) {
+                const writers = m.rowMeta.get(rowId)?.writers.size ?? 0;
+                if (writers >= 2) return { code: 'x', reason: `Written from ${writers} different classes: they can break each other` };
                 const shared = (m.rowMeta.get(rowId)?.classes.size ?? 0) >= 2;
                 return shared
                     ? { code: 'w', reason: 'Written, and used from more than one class: hidden coupling' }
@@ -390,6 +401,7 @@
         if (m.square) return fanIn >= a.hubFloor ? { code: 'hot', reason: `Depended on by ${fanIn}: a change here spreads` } : { code: '', reason: '' };
         if (side === 'rows') {
             const meta = m.rowMeta.get(id);
+            if (meta.writers.size >= 2) return { code: 'worst', reason: `Written from ${meta.writers.size} different classes: they can break each other` };
             if (meta.classes.size < 2) return { code: '', reason: 'Used from one class only' };
             return meta.written
                 ? { code: 'bad', reason: `Written, and used from ${meta.classes.size} classes: hidden coupling` }
@@ -553,7 +565,8 @@
             const hubs = [...a.fanIn.values()].filter(n => n >= a.hubFloor).length;
             if (hubs > 0) parts.push(`<span class="hot">${hubs} most depended on (${a.hubFloor}+ dependents)</span>`);
         } else {
-            parts.push(a.written > 0 ? `<span class="bad">${a.written} written and used from 2+ classes</span>` : '<span class="ok">Nothing written and shared between classes</span>');
+            if (a.severe > 0) parts.push(`<span class="worst">${a.severe} written from 2+ classes</span>`);
+            parts.push(a.written > 0 ? `<span class="bad">${a.written} with one writer, used from 2+ classes</span>` : '<span class="ok">Nothing written and shared between classes</span>');
         }
         const unmatched = focus.filter(name => ![...model.rowEls.values(), ...model.colEls.values()].some(el => matchesFocus(el, [name])));
         if (unmatched.length > 0) parts.push(`<span class="hot">No match at this level: ${escapeHtml(unmatched.join(', '))}</span>`);
@@ -564,7 +577,7 @@
     function renderLegend(square) {
         $('legend').innerHTML = square
             ? '<span class="bad">red bold on pink: mutual dependency</span><span class="bad" style="font-weight:400">red: same cycle</span><span class="heavy">blue bold: heavy</span><span class="normal">blue: dependency</span><span class="light">grey-blue: a single one</span><span>grey cell: inside itself</span><span class="bad">red name: in a cycle</span><span class="hot">amber name: many depend on it</span>'
-            : '<span class="bad">red W: written, shared by 2+ classes</span><span class="hot">amber W: written, one class only</span><span class="heavy">blue bold: read by many methods</span><span class="normal">blue: read</span><span class="bad">red name: written and shared</span><span class="hot">amber name: read from 2+ classes</span>';
+            : '<span class="worst">pink W: several classes write it</span><span class="bad">red W: written, shared by 2+ classes</span><span class="hot">amber W: written, one class only</span><span class="heavy">blue bold: read by many methods</span><span class="normal">blue: read</span><span class="worst">pink name: several writers</span><span class="bad">red name: written and shared</span><span class="hot">amber name: read from 2+ classes</span>';
     }
 
     // ---------- Detail: evidence of a cell, neighbours of a header ----------
