@@ -114,7 +114,7 @@ body.ana-index-page, body.ana-review-page {
 .ana-stat-item .value { font-size: 1.6rem; font-weight: bold; }
 .ana-stat-item .label { font-size: 0.85rem; color: #6c757d; }
 .ana-stat-item .max { margin-top: 6px; font-size: 0.85rem; color: #495057; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.ana-card { text-decoration: none; color: var(--text-main); }
+.ana-card { text-decoration: none; color: var(--text-main); max-width:300px }
 .ana-card:hover { border-color: var(--accent); }
 .ana-card h2 { margin: 0 0 6px; font-size: 1.05rem; color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
 .ana-card h2::after { content: " \2192"; }
@@ -127,7 +127,7 @@ body.ana-index-page, body.ana-review-page {
 .ana-index h2.ana-group { margin: 0 0 10px; font-size: 1.1rem; padding-bottom: 4px; border-bottom: 2px solid var(--accent); }
 /* Index page: one large flexbox; each subject (Namespaces, Classes, Methods...) is an item holding its page cards */
 .ana-groups-flexbox { display: flex; flex-wrap: wrap; gap: 28px 20px; align-items: flex-start; }
-.ana-group-item { flex: 0 1 380px; max-width: 100%; box-sizing: border-box; }
+.ana-group-item { flex: 0 1 380px; max-width: 320px; box-sizing: border-box; }
 .ana-group-item .ana-cards { display: flex; flex-direction: column; gap: 14px; }
 .ana-index .ana-error { color: #dc3545; }
 
