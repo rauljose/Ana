@@ -17,8 +17,12 @@ Needs PHP 8.4+, `ext-mysqli`, MySQL 8, [PHPStan](https://phpstan.org) 2.3+.
 vendor/bin/phpstan clear-result-cache
 vendor/bin/phpstan analyse
 ```
+On Windows
+```sh
+vendor\bin\phpsta clear-result-cache
+vendor\bin\phpsta analyse
+```
 
-(On Windows: `vendor\bin\phpstan`.)
 
 Then serve `src/` with Apache or `php -S localhost:8000 -t src` and open `index.php`.
 
