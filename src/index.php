@@ -77,20 +77,24 @@ $statItems = [
     </div>
 <?php endif; ?>
 
+    <div class="ana-groups-flexbox">
 <?php foreach (array_merge([''], $anaGroups) as $group): ?>
+        <section class="ana-group-item">
 <?php if ($group !== '') : ?>
-    <h2 class="ana-group"><?= htmlspecialchars($group) ?></h2>
+            <h2 class="ana-group"><?= htmlspecialchars($group) ?></h2>
 <?php endif; ?>
-    <div class="ana-cards">
+            <div class="ana-cards">
 <?php foreach ($anaPagesIn($group) as $file => [$label, $description]): ?>
 <?php if ($file === 'index.php') continue; ?>
-        <a class="ana-card" href="<?= $file ?>">
-            <h2><?= htmlspecialchars($label) ?></h2>
-            <p><?= htmlspecialchars($description) ?></p>
-        </a>
+                <a class="ana-card" href="<?= $file ?>">
+                    <h2><?= htmlspecialchars($label) ?></h2>
+                    <p><?= htmlspecialchars($description) ?></p>
+                </a>
+<?php endforeach; ?>
+            </div>
+        </section>
 <?php endforeach; ?>
     </div>
-<?php endforeach; ?>
 </div>
 </body>
 </html>
