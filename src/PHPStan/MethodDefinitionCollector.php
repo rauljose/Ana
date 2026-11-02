@@ -8,7 +8,7 @@ use PHPStan\Analyser\Scope;
 use PHPStan\Collectors\Collector;
 
 /**
- * @implements Collector<Node\FunctionLike, array{class: string, method: string, visibility: string, static: int, builtin: int, cyclo: int, cog: int, pure: int, num_params: int, num_defaults: int, has_sensitive: int, num_ref_params: int, num_obj_params: int, return_type: string, is_ends: int, signature: string, doc_comment: string|null, globals: list<array{type: string, name: string, access: string}>, type_hints: list<string>, prop_access: list<array{prop: string, type: string}>}>
+ * @implements Collector<Node\FunctionLike, array{class: string, method: string, visibility: string, static: int, builtin: int, cyclo: int, cog: int, pure: int, num_params: int, num_defaults: int, has_sensitive: int, num_ref_params: int, num_obj_params: int, return_type: string, is_ends: int, signature: string, doc_comment: string|null, globals: list<array{type: string, name: string, access: string}>, type_hints: list<string>, prop_access: list<array{prop: string, type: string}>, sql: list<array{operation: string, object_type: string, object_name: string, access: string, is_dynamic: int, source: string, snippet: string}>}>
  */
 class MethodDefinitionCollector implements Collector
 {
@@ -146,6 +146,7 @@ class MethodDefinitionCollector implements Collector
         $signature = rtrim($printer->prettyPrint([$sigNode]), "; \n\r\t");
 
         list($cyclo, $cog, $globals, $propAccess) = $this->analyzeMethodBody($stmts);
+        $sql = (new SqlUsageFinder())->find($stmts, fn(Node $constant): ?string => $this->constantString($constant, $scope));
 
         return [
           'class' => $className,
@@ -168,6 +169,7 @@ class MethodDefinitionCollector implements Collector
           'globals' => $globals,
           'type_hints' => array_values(array_unique($typeHints)),
           'prop_access' => $propAccess,
+          'sql' => $sql,
         ];
     }
 
@@ -362,6 +364,17 @@ class MethodDefinitionCollector implements Collector
         $uniqueGlobals = array_map('unserialize', array_unique(array_map('serialize', $globals)));
 
         return [$cyclo, $cog, array_values($uniqueGlobals), $finalPropAccess];
+    }
+
+    // The string a constant fetch (self::QUERY, TABLE_NAME) holds, when PHPStan knows it
+    private function constantString(Node $node, Scope $scope): ?string
+    {
+        try {
+            $strings = $scope->getType($node)->getConstantStrings();
+        } catch (\Throwable) {
+            return null;
+        }
+        return count($strings) === 1 ? $strings[0]->getValue() : null;
     }
 
     /**

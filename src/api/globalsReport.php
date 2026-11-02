@@ -1,6 +1,7 @@
 <?php declare(strict_types=1);
 
 require_once("../config/config.php");
+require_once __DIR__ . '/used_by.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
@@ -16,21 +17,6 @@ foreach (get_defined_constants(true) as $category => $constants) {
 function accessLabel(string $access): string
 {
     return ['READ' => 'Read', 'WRITE' => 'Write', 'READ_WRITE' => 'Read/Write'][$access] ?? $access;
-}
-
-function usedBy(string $className, string $methodName): array
-{
-    $isFunction = $className === '';
-    $parts = explode('\\', $isFunction ? $methodName : $className);
-    $shortName = array_pop($parts);
-    return [
-        'namespace' => implode('\\', $parts) ?: '[Global]',
-        'class_name' => $className,
-        'class_short_name' => $isFunction ? '' : $shortName,
-        'method_short_name' => $isFunction ? $shortName : $methodName,
-        'method_fqn' => $isFunction ? $methodName : $className . '::' . $methodName,
-        'kind' => $isFunction ? 'Function' : 'Method',
-    ];
 }
 
 $report = [];

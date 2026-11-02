@@ -130,6 +130,11 @@ class ExportMetricsRule implements Rule
             VALUES (?, ?, ?, ?)
         ");
 
+        $stmtSql = $mysqli->prepare("
+            INSERT INTO method_sql (class_name, method_name, operation, object_type, object_name, access, is_dynamic, source, snippet)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ");
+
         foreach ($definitions as $file => $fileDefs) {
             foreach ($fileDefs as $def) {
                 $stmtMethod->execute([
@@ -141,6 +146,12 @@ class ExportMetricsRule implements Rule
 
                 foreach ($def['globals'] as $global) {
                     $stmtGlobals->execute([$def['class'], $def['method'], $global['type'], $global['name'], $global['access']]);
+                }
+                foreach ($def['sql'] as $sql) {
+                    $stmtSql->execute([
+                        $def['class'], $def['method'], $sql['operation'], $sql['object_type'], $sql['object_name'],
+                        $sql['access'], $sql['is_dynamic'], $sql['source'], $sql['snippet'],
+                    ]);
                 }
                 foreach ($def['type_hints'] as $targetClass) {
                     $stmtRelation->execute([$def['class'], $targetClass, 'TYPE_HINT']);
