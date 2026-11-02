@@ -58,8 +58,19 @@ $statItems = [
 ];
 ?>
 <div class="ana-index">
-    <h1><?= htmlspecialchars($anaProjectName !== '' ? $anaProjectName : 'Ana') ?></h1>
-    <p class="ana-subtitle"><?= $anaAnalyzedAt !== '' ? 'Analyzed ' . htmlspecialchars($anaAnalyzedAt) : 'Static analysis overview' ?></p>
+    <div class="ana-index-head">
+        <div>
+            <h1><?= htmlspecialchars($anaProjectName !== '' ? $anaProjectName : 'Ana') ?></h1>
+            <p class="ana-subtitle"><?= $anaAnalyzedAt !== '' ? 'Analyzed ' . htmlspecialchars($anaAnalyzedAt) : 'Static analysis overview' ?></p>
+        </div>
+<?php foreach ($anaPagesIn('') as $file => [$label, $description]): ?>
+<?php if ($file === 'index.php') continue; ?>
+        <a class="ana-card" href="<?= $file ?>">
+            <h2><?= htmlspecialchars($label) ?></h2>
+            <p><?= htmlspecialchars($description) ?></p>
+        </a>
+<?php endforeach; ?>
+    </div>
 
 <?php if (isset($statsError)): ?>
     <p class="ana-error">Could not read the analysis data: <?= htmlspecialchars($statsError) ?></p>
@@ -78,14 +89,11 @@ $statItems = [
 <?php endif; ?>
 
     <div class="ana-groups-flexbox">
-<?php foreach (array_merge([''], $anaGroups) as $group): ?>
+<?php foreach ($anaGroups as $group): ?>
         <section class="ana-group-item">
-<?php if ($group !== '') : ?>
             <h2 class="ana-group"><?= htmlspecialchars($group) ?></h2>
-<?php endif; ?>
             <div class="ana-cards">
 <?php foreach ($anaPagesIn($group) as $file => [$label, $description]): ?>
-<?php if ($file === 'index.php') continue; ?>
                 <a class="ana-card" href="<?= $file ?>">
                     <h2><?= htmlspecialchars($label) ?></h2>
                     <p><?= htmlspecialchars($description) ?></p>
