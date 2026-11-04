@@ -8,10 +8,16 @@ Needs PHP 8.4+, `ext-mysqli`, MySQL 8, [PHPStan](https://phpstan.org) 2.3+.
 
 ## Setup
 
-1. `composer install`
+Install Ana as its own website, not inside the project you analyze. Ana keeps its own `vendor/` and MySQL credentials, and the project to analyze is only a path in `phpstan.neon`.
+
+1. `composer create-project ocallit/ana /path/to/htdocs/ana` (or `git clone` and `composer install`)
 2. Set the MySQL credentials in `src/config/config.php`. The database and its tables are created the first time a page, an API or the analysis connects, and any table a later update adds is created the same way: nothing to install by hand. Existing tables and their data are never touched.
 3. Db schema is auto created. Optionally create it. `php src/PHPStan/create_db.php` starts the analysis tables over (after a table gained a column, or to wipe a previous analysis); saved layouts and settings are kept.
 4. In `phpstan.neon` set `anaProjectName`, `paths` (the code to analyze) and `bootstrapFiles` (its autoloader).
+
+### Alternative: as a dev dependency of the analyzed project
+
+`composer require --dev ocallit/ana` in the project to analyze. With `phpstan/extension-installer` the plugin is registered for you; otherwise add `includes: - vendor/ocallit/ana/extension.neon` to the project's `phpstan.neon`, and set `anaProjectName`. The MySQL credentials are then in `vendor/`, and `composer update` overwrites them, so prefer the website install above.
 
 ## Run
 
