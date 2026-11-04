@@ -1,7 +1,13 @@
 {
     "name": "ocallit/ana",
-    "description": "A custom PHP 8.4 static analysis tool to map call graphs and measure complexities.",
-    "type": "project",
+    "description": "An opinionated PHPStan plugin for PHP 8.4 that records classes, methods and calls to map call graphs and measure complexities.",
+    "type": "phpstan-extension",
+    "keywords": ["phpstan", "phpstan-extension", "static analysis", "call graph", "complexity", "metrics", "opinionated"],
+    "homepage": "https://github.com/rauljose/Ana",
+    "support": {
+        "issues": "https://github.com/rauljose/Ana/issues",
+        "source": "https://github.com/rauljose/Ana"
+    },
     "require": {
         "php": ">=8.4",
         "nikic/php-parser": "^5.3",
@@ -12,6 +18,13 @@
         "psr-4": {
             "App\\": "src/",
             "App\\PHPStan\\": "src/PHPStan/"
+        }
+    },
+    "extra": {
+        "phpstan": {
+            "includes": [
+                "extension.neon"
+            ]
         }
     },
     "config": {

@@ -1,5 +1,5 @@
-parametersSchema:
-    anaProjectName: string()
+includes:
+    - extension.neon
 
 parameters:
     level: 0
@@ -8,23 +8,3 @@ parameters:
         - C:\vamp\apache\htdocs\Ocallit\Sqler/Src
     bootstrapFiles:
         - C:\vamp\apache\htdocs\Ocallit\Sqler\vendor\autoload.php
-
-services:
-    -
-        class: App\PHPStan\ClassDefinitionCollector
-        tags:
-            - phpstan.collector
-    -
-        class: App\PHPStan\MethodDefinitionCollector
-        tags:
-            - phpstan.collector
-    -
-        class: App\PHPStan\MethodCallCollector
-        tags:
-            - phpstan.collector
-    -
-        class: App\PHPStan\ExportMetricsRule
-        arguments:
-            projectName: %anaProjectName%
-        tags:
-            - phpstan.rules.rule
