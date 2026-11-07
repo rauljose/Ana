@@ -1,7 +1,7 @@
 {
     "name": "ocallit/ana",
     "description": "An opinionated PHPStan plugin for PHP 8.4 that records classes, methods and calls to map call graphs and measure complexities.",
-    "type": "phpstan-extension",
+    "type": "package",
     "license": "MIT",
     "keywords": ["phpstan", "phpstan-extension", "static analysis", "call graph", "complexity", "metrics", "opinionated"],
     "homepage": "https://github.com/rauljose/Ana",
