@@ -3,7 +3,7 @@
     "description": "An opinionated PHPStan plugin for PHP 8.4 that records classes, methods and calls to map call graphs and measure complexities.",
     "type": "phpstan-extension",
     "license": "MIT",
-    "keywords": ["phpstan", "phpstan-extension", "static analysis", "call graph", "complexity", "metrics", "opinionated"],
+    "keywords": ["phpstan", "phpstan-extension", "static analysis", "metrics", "code metrics", "cyclomatic complexity", "cognitive complexity", "coupling", "graphs", "call graph", "dependency graph", "dependency matrix", "php"],
     "homepage": "https://github.com/rauljose/Ana",
     "support": {
         "issues": "https://github.com/rauljose/Ana/issues",
