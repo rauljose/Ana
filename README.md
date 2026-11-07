@@ -56,6 +56,75 @@ Every class, method and namespace name links to its detail page (`detail.php`). 
 
 `src/PHPStan` holds three collectors (classes, methods, calls) and `ExportMetricsRule`, which writes them to the `ana` database. `src/api` serves the tables as JSON and `src/*.php` pages render them with [Tabulator](https://tabulator.info) and [ECharts](https://echarts.apache.org). Pages load both from a CDN.
 
+## Metrics
+
+Metrics shown in the Namespace, Class and Method Metrics pages (hover a column header there for the full definition). A metric listed for several levels is rolled up: the class value sums or averages its methods, the namespace value its classes.
+
+| Metric | Description | For |
+|---|---|---|
+| Classes, Abstract, Interfaces, Traits, Total types | Count of each kind of type, and all of them together | Namespace |
+| Type | Class, Abstract Class, Final Class, Interface or Trait | Class |
+| Kind | Method, Function or Native Function | Method/function |
+| Visibility | public, protected or private | Method |
+| Static, Static class | Static method; class that only has static methods | Method, Class |
+| Built-in | PHP native function called by the project | Method/function |
+| Readonly class | Declared readonly | Class |
+| Doc comment | Doc block above the class or method | Class, Method |
+| Extends, Implements, Uses traits | Parent class, interfaces and traits | Class |
+| Children | Classes that extend this one | Class |
+| Methods (Total, Public, Protected, Private) | Number of methods, by visibility | Class, Namespace |
+| Cyclomatic (total, avg, max) | Independent paths through the code; the minimum number of tests | Method, Class, Namespace |
+| Cognitive (total, avg, max) | How hard the code is to read; nesting counts extra | Method, Class, Namespace |
+| Pure / Pure % | No side effects; share of pure methods | Method, Class, Namespace |
+| Ends script | Calls `exit` or `die`, or never returns | Method/function, Class (count) |
+| Hotspot score | Cyclomatic x incoming calls: complex code many depend on | Method, Class, Namespace |
+| Params | Number of parameters | Method/function |
+| Defaults | Parameters with a default value | Method/function |
+| By-reference params | Parameters passed by reference | Method/function, Class (total) |
+| Object params | Parameters typed with a class | Method/function, Class (total) |
+| Constructor params | Parameters of the constructor, mostly dependencies | Class |
+| Sensitive params | Uses `#[SensitiveParameter]` | Method/function, Class (count) |
+| Return type | Declared or inferred return type | Method/function |
+| Signature | Full signature | Method/function |
+| Props read, Props written (and lists) | Properties the method reads or writes | Method |
+| Globals (and list) | Superglobals, `global` keyword and constants used | Method |
+| Calls out (Fan-out), Calls out native | Calls made, and how many go to native functions | Method/function, Namespace |
+| Calls in (Fan-in) | Calls received | Method/function, Namespace |
+| Calls internal, Internal ratio | Calls inside the namespace; internal / (internal + out), cohesion | Namespace |
+| Calls out list, Calls in list | Which methods are called, and which call this one | Method/function |
+| Ca (Afferent coupling) | Classes or namespaces that call this one | Class, Namespace |
+| Ce (Efferent coupling) | Classes or namespaces this one calls | Class, Namespace |
+| Instability | Ce / (Ca + Ce); 0 stable, 1 unstable | Class, Namespace |
+| Abstractness | Share of interfaces and abstract classes | Class, Namespace |
+| Main seq. distance | abs(abstractness + instability - 1); far from 0 is rigid or useless | Class, Namespace |
+| MPC | Message passing coupling: calls to other classes | Class |
+| DAC | Data abstraction coupling: properties typed with another class | Class |
+| Classes used, Classes using this | The classes this one calls, and those that call it | Class |
+| Namespaces used, Namespaces using this | The namespaces this one calls, and those that call it | Namespace |
+| In cycle | Part of a dependency cycle | Namespace |
+| LCOM | Lack of cohesion of methods; 0 is cohesive | Class |
+| Mutable props, Readonly props, Props written | Properties that can change, that cannot, and that some method writes | Class |
+| Superglobals, global keyword, Constants | Uses of global state | Class |
+| God class | LCOM >= 0.8, cyclomatic total above 40 and Ce above 10 | Class |
+| Data class | Several mutable properties, few methods, almost no logic | Class |
+| Stateless service | No mutable properties and mostly pure methods | Class |
+| Unused candidate | Nothing calls it (or extends it); possibly dead code | Method/function, Class |
+
+## Graphs
+
+| Graph | Description | For |
+|---|---|---|
+| Zone of Pain (scatter) | Efferent coupling (Ce) against total cyclomatic complexity; red is Ce > 10 and complexity > 40 | Class |
+| Class Health Radar | LCOM, purity, average complexity, Ce and Ca of the chosen classes | Class |
+| Method Hotspots (scatter) | Fan-out against cyclomatic complexity, dot size is fan-in; red is fan-out > 10 and complexity > 15 | Method/function |
+| Method Health Radar | Cyclomatic, cognitive, fan-out, fan-in, parameters, props written and globals used | Method/function |
+| Call Graph | Nodes joined by arrows from caller to callee, thicker for more calls; the focus shows all its incoming and outgoing calls | Namespace, class or method (you choose the level) |
+| Dependency Matrix | Who depends on whom as a matrix; cycles, hubs, layers and heavy dependencies in color | Namespace, class, method, plus shared properties, variables and constants |
+| Maltese Cross | Matrix of database tables against the methods that read (R) and write (W) them | Method/function and SQL table or procedure |
+| Firebase Cross | Matrix of Firebase paths against the methods that overwrite, change, append, delete or read them | Method/function and Firebase path |
+| Dependency Cycles | Groups that depend on each other in a loop, with an example path and the calls behind it | Namespace, class or method |
+| Change Impact | Everything that calls a method, directly or through other methods: what to retest before changing it | Method/function |
+
 ## SQL
 
 The plugin also reads the SQL a method holds, in string literals, concatenations of literals and class constants, heredocs and interpolated strings, and the Sqler `insert()`, `update()` and `junctionTable()` helpers. It records SELECT, INSERT, UPDATE, DELETE, REPLACE, TRUNCATE, CALL and CREATE, ALTER, DROP, RENAME by table or procedure (a table named by a variable shows as `{?}`). The text is read, not run or fully parsed, and it counts for the method that holds it. The helper names are in `src/PHPStan/SqlUsageFinder.php`. A database analyzed before this only needs the analysis run again: the `method_sql` table is created when missing.
